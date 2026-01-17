@@ -151,8 +151,8 @@ supabase functions deploy realtime-chat
 #### Set Edge Function Environment Variables:
 
 ```bash
-# Set OpenAI API key for all functions
-supabase secrets set OPENAI_API_KEY=sk-your-openai-api-key-here
+# Set Gemini API key for all functions
+supabase secrets set GEMINI_API_KEY=your-gemini-api-key-here
 
 # Verify secrets are set
 supabase secrets list
@@ -182,11 +182,12 @@ Open `.env` and add your API keys:
    VITE_SUPABASE_ANON_KEY=your-anon-key-here
    ```
 
-2. **OpenAI API** (for Edge Functions):
-   - Get your API key from: [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. **Gemini API** (for Edge Functions & Sentiment Analysis):
+   - Get your API key from: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
    - Note: This is set in Supabase secrets (see above), NOT in .env
+   - Per Arden Spec: Gemini is required for transcript sentiment analysis (Milestone 3.5)
    ```env
-   OPENAI_API_KEY=sk-your-openai-api-key-here
+   GEMINI_API_KEY=your-gemini-api-key-here
    ```
 
 #### Required for Arden Real-Time Companion (New Spec):
@@ -314,12 +315,12 @@ cp .env.example .env
 2. Under **CORS Allowed Origins**, add your local URL: `http://localhost:8080`
 3. For production, add your production URL
 
-### Issue: Edge Functions failing with "OPENAI_API_KEY not configured"
+### Issue: Edge Functions failing with "GEMINI_API_KEY not configured"
 
 **Solution**: Set the secret in Supabase:
 
 ```bash
-supabase secrets set OPENAI_API_KEY=sk-your-key-here
+supabase secrets set GEMINI_API_KEY=your-gemini-key-here
 ```
 
 ### Issue: Database migrations failed

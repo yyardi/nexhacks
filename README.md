@@ -10,7 +10,7 @@ Arden is a real-time AI mental health companion built for the Arden Hackathon. I
 
 - **LiveKit Agents** - Real-time voice conversation with live transcription
 - **Overshoot RealtimeVision** - Continuous emotional and behavioral perception through camera
-- **OpenAI GPT-4** - Intelligent, empathetic conversation generation
+- **Google Gemini** - AI-powered sentiment analysis and conversation intelligence
 - **React + TypeScript** - Modern, responsive web interface
 - **Supabase** - Backend database and edge functions
 
@@ -20,7 +20,7 @@ Arden is a real-time AI mental health companion built for the Arden Hackathon. I
 
 - Node.js 18+
 - Supabase account
-- OpenAI API key
+- Google Gemini API key (for sentiment analysis)
 - LiveKit account (for Arden features)
 - Overshoot API key (for Arden features)
 
@@ -128,8 +128,8 @@ Required variables (add to `.env`):
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 
-# OpenAI (for Edge Functions)
-OPENAI_API_KEY=
+# Gemini (for Sentiment Analysis & Edge Functions)
+GEMINI_API_KEY=
 
 # LiveKit (for Arden features)
 LIVEKIT_API_KEY=
@@ -154,7 +154,7 @@ OVERSHOOT_API_KEY=
 ### Backend
 - **Supabase** - Database & Auth
 - **Deno** - Edge Functions runtime
-- **OpenAI API** - AI conversations
+- **Google Gemini** - AI sentiment analysis & conversations
 - **LiveKit** - Real-time communication
 - **Overshoot** - Computer vision
 
@@ -189,7 +189,7 @@ MIT License - feel free to use this project as you wish.
 - **LiveKit** - Real-time infrastructure
 - **Overshoot** - Computer vision technology
 - **Supabase** - Backend platform
-- **OpenAI** - AI models
+- **Google Gemini** - AI models
 
 ---
 

@@ -6,25 +6,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function callAI(payload: unknown) {
-  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
+async function callGemini(systemPrompt: string, userPrompt: string) {
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+  const model = "gemini-2.0-flash-exp";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const resp = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `${systemPrompt}\n\n${userPrompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.4,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
+      },
+    }),
   });
 
   if (!resp.ok) {
     const t = await resp.text();
-    console.error("OpenAI API error:", resp.status, t);
+    console.error("Gemini API error:", resp.status, t);
     if (resp.status === 429) return { status: 429, body: { error: "Rate limits exceeded, please try again shortly." } };
-    if (resp.status === 402) return { status: 402, body: { error: "Credits exhausted. Please add credits to continue." } };
-    return { status: 500, body: { error: "OpenAI API error" } };
+    if (resp.status === 403) return { status: 403, body: { error: "Invalid API key or permissions." } };
+    return { status: 500, body: { error: "Gemini API error" } };
   }
 
   const data = await resp.json();
@@ -60,17 +75,7 @@ Return VALID JSON with this schema:
 
     const user = `LATEST TURNS (most recent last):\n${JSON.stringify(transcriptTurns ?? [], null, 2)}\n\nEXISTING QUESTIONS (some may already be answered/asked):\n${JSON.stringify(existingQuestions ?? [], null, 2)}`;
 
-    const payload: any = {
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.4,
-    };
-
-    const out = await callAI(payload);
+    const out = await callGemini(system, user);
     if (out.status !== 200) {
       return new Response(JSON.stringify(out.body), {
         status: out.status,
@@ -78,7 +83,7 @@ Return VALID JSON with this schema:
       });
     }
 
-    const content = out.body?.choices?.[0]?.message?.content;
+    const content = out.body?.candidates?.[0]?.content?.parts?.[0]?.text;
     const parsed = typeof content === "string" ? JSON.parse(content) : null;
 
     return new Response(JSON.stringify(parsed ?? {}), {

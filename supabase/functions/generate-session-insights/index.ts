@@ -16,22 +16,37 @@ interface SessionData {
   patientName?: string;
 }
 
-async function callAI(payload: unknown) {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
+async function callGemini(systemPrompt: string, userPrompt: string) {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const model = "gemini-2.0-flash-exp";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `${systemPrompt}\n\n${userPrompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 4096,
+        responseMimeType: "application/json",
+      },
+    }),
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${text}`);
+    throw new Error(`Gemini API error: ${response.status} - ${text}`);
   }
 
   return response.json();
@@ -187,16 +202,9 @@ Generate a comprehensive clinical report in this JSON structure:
   }
 }`;
 
-    const aiResponse = await callAI({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.3,
-    });
+    const aiResponse = await callGemini(systemPrompt, userPrompt);
 
-    let content = aiResponse.choices?.[0]?.message?.content || "{}";
+    let content = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     
     // Clean up markdown if present
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

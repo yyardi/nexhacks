@@ -6,51 +6,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const callAI = async (prompt: string) => {
-  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-  if (!OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY not configured');
+const callGemini = async (prompt: string) => {
+  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
   }
 
-  console.log('Calling OpenAI for psychiatric analysis...');
+  console.log('Calling Gemini for psychiatric analysis...');
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const model = "gemini-2.0-flash-exp";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a clinical psychiatric analysis assistant. Analyze psychiatric interviews and provide structured clinical assessments. Always return valid JSON matching the exact schema provided.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      response_format: { type: "json_object" }
+      contents: [{
+        parts: [{
+          text: `You are a clinical psychiatric analysis assistant. Analyze psychiatric interviews and provide structured clinical assessments. Always return valid JSON matching the exact schema provided.\n\n${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 4096,
+        responseMimeType: "application/json",
+      },
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
+    console.error('Gemini API error:', response.status, errorText);
 
     if (response.status === 429) {
       throw new Error('AI rate limit exceeded. Please wait a moment and try again.');
     }
-    if (response.status === 402) {
-      throw new Error('AI credits exhausted. Please add credits to continue.');
+    if (response.status === 403) {
+      throw new Error('Invalid API key or permissions.');
     }
     throw new Error(`AI analysis failed: ${response.status}`);
   }
 
   const data = await response.json();
-  const content = data.choices[0].message.content;
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   return JSON.parse(content);
 };
 
@@ -163,7 +165,7 @@ Return this EXACT JSON structure:
 
 CRITICAL: Be precise with severity and safety classifications. Past suicide attempts = HIGH/IMMINENT risk. Multiple severe symptoms or functional impairment = SEVERE depression. Prioritize patient safety above all.`;
 
-    const result = await callAI(combinedPrompt);
+    const result = await callGemini(combinedPrompt);
     console.log('Analysis completed successfully');
 
     // Structure response with treatment plan
