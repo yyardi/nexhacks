@@ -1,0 +1,25 @@
+project_id = "zggbfcrxbiflzbqgdyra"
+
+[auth]
+enabled = true
+
+[functions.transcribe-audio]
+verify_jwt = false
+
+[functions.analyze-psychiatric]
+verify_jwt = false
+
+[functions.realtime-chat]
+verify_jwt = false
+
+[functions.interview-orchestrator]
+verify_jwt = false
+
+[functions.transcribe-audio-file]
+verify_jwt = false
+
+[functions.translate-to-english]
+verify_jwt = false
+
+[functions.generate-session-insights]
+verify_jwt = false
