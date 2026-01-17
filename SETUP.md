@@ -405,4 +405,11 @@ If you encounter issues not covered here:
 
 ---
 
+Command to start livekit room
+
+cd arden-agent && source .venv/bin/activate
+export SSL_CERT_FILE=$(python -c "import certifi; print(certifi.where())")
+python src/agent.py dev
+
+
 **Happy building with Arden! 🧠💜**

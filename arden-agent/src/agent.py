@@ -249,11 +249,12 @@ class PsychiatricAssistant(Agent):
     """Voice AI agent for psychiatric interviews with emotion awareness and crisis detection."""
 
     def __init__(self) -> None:
+        # Initialize state before calling super().__init__ since _build_instructions needs them
+        self.session_state = SessionState()
+        self.emotion_context = EmotionContext()
         super().__init__(
             instructions=self._build_instructions(),
         )
-        self.session_state = SessionState()
-        self.emotion_context = EmotionContext()
 
     def _build_instructions(self) -> str:
         """Build the agent's instruction prompt."""
@@ -571,13 +572,13 @@ async def psychiatric_session(ctx: JobContext):
 
     # Set up event handlers for transcript tracking
     @session.on("user_speech_committed")
-    async def on_user_speech(text: str):
+    def on_user_speech(text: str):
         """Track user speech in session state."""
         agent.session_state.add_utterance("patient", text)
         logger.info(f"Patient: {text[:100]}...")
 
     @session.on("agent_speech_committed")
-    async def on_agent_speech(text: str):
+    def on_agent_speech(text: str):
         """Track agent speech in session state."""
         agent.session_state.add_utterance("agent", text)
         logger.info(f"Agent: {text[:100]}...")
