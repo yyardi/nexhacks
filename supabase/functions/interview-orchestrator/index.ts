@@ -6,14 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function callLovableAI(payload: unknown) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+async function callAI(payload: unknown) {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
@@ -21,10 +21,10 @@ async function callLovableAI(payload: unknown) {
 
   if (!resp.ok) {
     const t = await resp.text();
-    console.error("AI gateway error:", resp.status, t);
+    console.error("OpenAI API error:", resp.status, t);
     if (resp.status === 429) return { status: 429, body: { error: "Rate limits exceeded, please try again shortly." } };
     if (resp.status === 402) return { status: 402, body: { error: "Credits exhausted. Please add credits to continue." } };
-    return { status: 500, body: { error: "AI gateway error" } };
+    return { status: 500, body: { error: "OpenAI API error" } };
   }
 
   const data = await resp.json();
@@ -61,7 +61,7 @@ Return VALID JSON with this schema:
     const user = `LATEST TURNS (most recent last):\n${JSON.stringify(transcriptTurns ?? [], null, 2)}\n\nEXISTING QUESTIONS (some may already be answered/asked):\n${JSON.stringify(existingQuestions ?? [], null, 2)}`;
 
     const payload: any = {
-      model: "google/gemini-3-flash-preview",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -70,7 +70,7 @@ Return VALID JSON with this schema:
       temperature: 0.4,
     };
 
-    const out = await callLovableAI(payload);
+    const out = await callAI(payload);
     if (out.status !== 200) {
       return new Response(JSON.stringify(out.body), {
         status: out.status,

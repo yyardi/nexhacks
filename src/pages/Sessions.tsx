@@ -13,7 +13,6 @@ import {
   Heart, Brain, FolderOpen, Folder, Users
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
-import charcotLogo from '@/assets/charcot-logo.png';
 
 interface Session {
   id: string;
@@ -234,7 +233,7 @@ export default function Sessions() {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src={charcotLogo} alt="Charcot" className="h-8 w-auto" />
+            <div className="text-xl font-bold text-primary">Arden</div>
             <div className="border-l pl-4 hidden sm:block">
               <h1 className="text-lg font-semibold">Patient Records</h1>
               <p className="text-xs text-muted-foreground">Session Management</p>

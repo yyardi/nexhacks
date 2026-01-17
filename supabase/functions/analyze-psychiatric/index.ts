@@ -6,22 +6,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const callLovableAI = async (prompt: string) => {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  if (!LOVABLE_API_KEY) {
-    throw new Error('LOVABLE_API_KEY not configured');
+const callAI = async (prompt: string) => {
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
   }
 
-  console.log('Calling Lovable AI for psychiatric analysis...');
-  
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  console.log('Calling OpenAI for psychiatric analysis...');
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
@@ -38,8 +38,8 @@ const callLovableAI = async (prompt: string) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Lovable AI error:', response.status, errorText);
-    
+    console.error('OpenAI API error:', response.status, errorText);
+
     if (response.status === 429) {
       throw new Error('AI rate limit exceeded. Please wait a moment and try again.');
     }
@@ -163,7 +163,7 @@ Return this EXACT JSON structure:
 
 CRITICAL: Be precise with severity and safety classifications. Past suicide attempts = HIGH/IMMINENT risk. Multiple severe symptoms or functional impairment = SEVERE depression. Prioritize patient safety above all.`;
 
-    const result = await callLovableAI(combinedPrompt);
+    const result = await callAI(combinedPrompt);
     console.log('Analysis completed successfully');
 
     // Structure response with treatment plan

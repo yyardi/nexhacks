@@ -16,11 +16,11 @@ interface SessionData {
   patientName?: string;
 }
 
-async function callLovableAI(payload: unknown) {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+async function callAI(payload: unknown) {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -31,7 +31,7 @@ async function callLovableAI(payload: unknown) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`AI API error: ${response.status} - ${text}`);
+    throw new Error(`OpenAI API error: ${response.status} - ${text}`);
   }
 
   return response.json();
@@ -187,8 +187,8 @@ Generate a comprehensive clinical report in this JSON structure:
   }
 }`;
 
-    const aiResponse = await callLovableAI({
-      model: "google/gemini-3-flash-preview",
+    const aiResponse = await callAI({
+      model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import charcotLogo from '@/assets/charcot-logo.png';
 
 export default function Terms() {
   const navigate = useNavigate();
@@ -19,7 +18,7 @@ export default function Terms() {
 
         <Card>
           <CardHeader className="text-center space-y-4">
-            <img src={charcotLogo} alt="Charcot" className="h-12 w-auto mx-auto" />
+            <div className="text-4xl font-bold text-primary mx-auto">Arden</div>
             <CardTitle className="text-3xl">Terms of Service</CardTitle>
             <p className="text-sm text-muted-foreground">Last Updated: {new Date().toLocaleDateString()}</p>
           </CardHeader>
@@ -27,7 +26,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
               <p className="text-muted-foreground">
-                By accessing and using Charcot's psychiatric assessment platform, you agree to be bound by these Terms of Service. 
+                By accessing and using Arden's psychiatric assessment platform, you agree to be bound by these Terms of Service. 
                 If you do not agree to these terms, please do not use our services.
               </p>
             </section>
@@ -35,7 +34,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold mb-3">2. Medical Disclaimer</h2>
               <p className="text-muted-foreground">
-                Charcot is a clinical decision support tool designed to assist healthcare professionals. It does not replace 
+                Arden is a clinical decision support tool designed to assist healthcare professionals. It does not replace 
                 professional medical judgment, diagnosis, or treatment. All clinical decisions should be made by qualified 
                 healthcare professionals based on their professional judgment and patient-specific circumstances.
               </p>
@@ -45,7 +44,7 @@ export default function Terms() {
               <h2 className="text-xl font-semibold mb-3">3. User Eligibility</h2>
               <p className="text-muted-foreground">
                 Our services are intended solely for licensed healthcare professionals, including psychiatrists, psychologists, 
-                and licensed clinical mental health professionals. By using Charcot, you represent that you are a licensed 
+                and licensed clinical mental health professionals. By using Arden, you represent that you are a licensed 
                 healthcare professional authorized to practice in your jurisdiction.
               </p>
             </section>
@@ -53,7 +52,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold mb-3">4. Data Security and HIPAA Compliance</h2>
               <p className="text-muted-foreground">
-                Charcot implements industry-standard security measures to protect patient data. Users are responsible for 
+                Arden implements industry-standard security measures to protect patient data. Users are responsible for 
                 ensuring their use of the platform complies with HIPAA and other applicable healthcare privacy regulations. 
                 Do not enter protected health information (PHI) unless you have obtained proper consent and authorization.
               </p>
@@ -73,7 +72,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold mb-3">6. Limitations of Liability</h2>
               <p className="text-muted-foreground">
-                Charcot is provided "as is" without warranties of any kind. We are not liable for any clinical decisions 
+                Arden is provided "as is" without warranties of any kind. We are not liable for any clinical decisions 
                 made based on platform recommendations. Healthcare professionals retain full responsibility for all patient 
                 care decisions.
               </p>
@@ -82,7 +81,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold mb-3">7. Intellectual Property</h2>
               <p className="text-muted-foreground">
-                All content, algorithms, and materials on Charcot are proprietary and protected by intellectual property laws. 
+                All content, algorithms, and materials on Arden are proprietary and protected by intellectual property laws. 
                 Users may not reproduce, distribute, or create derivative works without explicit written permission.
               </p>
             </section>

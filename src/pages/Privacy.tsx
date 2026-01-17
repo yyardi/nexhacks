@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import charcotLogo from '@/assets/charcot-logo.png';
 
 export default function Privacy() {
   const navigate = useNavigate();
@@ -19,7 +18,7 @@ export default function Privacy() {
 
         <Card>
           <CardHeader className="text-center space-y-4">
-            <img src={charcotLogo} alt="Charcot" className="h-12 w-auto mx-auto" />
+            <div className="text-4xl font-bold text-primary mx-auto">Arden</div>
             <CardTitle className="text-3xl">Privacy Policy</CardTitle>
             <p className="text-sm text-muted-foreground">Last Updated: {new Date().toLocaleDateString()}</p>
           </CardHeader>
@@ -27,7 +26,7 @@ export default function Privacy() {
             <section>
               <h2 className="text-xl font-semibold mb-3">1. Introduction</h2>
               <p className="text-muted-foreground">
-                At Charcot, we are committed to protecting the privacy and security of your data and your patients' information. 
+                At Arden, we are committed to protecting the privacy and security of your data and your patients' information. 
                 This Privacy Policy explains how we collect, use, disclose, and safeguard information in compliance with HIPAA 
                 and other applicable healthcare privacy regulations.
               </p>
@@ -101,7 +100,7 @@ export default function Privacy() {
             <section>
               <h2 className="text-xl font-semibold mb-3">6. Patient Data Rights</h2>
               <p className="text-muted-foreground">
-                As a healthcare professional using Charcot, you are responsible for ensuring patients' rights regarding their 
+                As a healthcare professional using Arden, you are responsible for ensuring patients' rights regarding their 
                 health information are protected, including rights to access, amendment, and accounting of disclosures as 
                 required by HIPAA.
               </p>
@@ -167,7 +166,7 @@ export default function Privacy() {
                 privacy@charcot.ai or write to us at:
               </p>
               <p className="text-muted-foreground mt-2">
-                Charcot Privacy Officer<br />
+                Arden Privacy Officer<br />
                 [Address]<br />
                 [City, State ZIP]
               </p>
