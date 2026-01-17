@@ -25,7 +25,6 @@ import { useTimelineAnalysis } from '@/hooks/useTimelineAnalysis';
 import { useSmartQA } from '@/hooks/useSmartQA';
 import { useInterviewOrchestrator } from '@/hooks/useInterviewOrchestrator';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
-import charcotLogo from '@/assets/charcot-logo.png';
 
 interface Diagnosis {
   diagnosis: string;
@@ -590,7 +589,7 @@ const Dashboard = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src={charcotLogo} alt="Charcot" className="h-10 w-auto" />
+            <div className="text-2xl font-bold text-primary">Arden</div>
             <div className="border-l pl-4 hidden sm:block">
               <h1 className="text-lg font-semibold">Clinical Dashboard</h1>
               <p className="text-xs text-muted-foreground">AI-Powered Psychiatric Assessment</p>

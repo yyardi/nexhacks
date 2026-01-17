@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
-import charcotLogo from '@/assets/charcot-logo.png';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -134,15 +133,15 @@ export default function Auth() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center mb-4">
-            <img src={charcotLogo} alt="Charcot" className="h-16 w-auto" />
+            <div className="text-4xl font-bold text-primary">Arden</div>
           </div>
           <CardTitle className="text-2xl">
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </CardTitle>
           <CardDescription>
-            {isLogin 
-              ? 'Sign in to access your clinical dashboard' 
-              : 'Join Charcot to revolutionize psychiatric assessments'}
+            {isLogin
+              ? 'Sign in to connect with your AI companion'
+              : 'Join Arden for compassionate mental health support'}
           </CardDescription>
         </CardHeader>
         <CardContent>

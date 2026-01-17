@@ -6,32 +6,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function callLovableAI(text: string) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+async function callGemini(text: string) {
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const model = "gemini-2.0-flash-exp";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const prompt = `You translate clinical interview speech to English. Preserve meaning, tone, and clinical details. Return VALID JSON only.
+
+Translate the following to English. If already English, return it unchanged.
+
+Return EXACT JSON:
+{
+  "detected_language": "...",
+  "english": "..."
+}
+
+TEXT:
+${text}`;
+
+  const resp = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You translate clinical interview speech to English. Preserve meaning, tone, and clinical details. Return VALID JSON only.",
-        },
-        {
-          role: "user",
-          content:
-            `Translate the following to English. If already English, return it unchanged.\n\nReturn EXACT JSON:\n{\n  \"detected_language\": \"...\",\n  \"english\": \"...\"\n}\n\nTEXT:\n${text}`,
-        },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.2,
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        temperature: 0.2,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
+      },
     }),
   });
 
@@ -42,7 +52,7 @@ async function callLovableAI(text: string) {
   }
 
   const data = await resp.json();
-  return JSON.parse(data.choices[0].message.content);
+  return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }
 
 serve(async (req) => {
@@ -52,7 +62,7 @@ serve(async (req) => {
     const { text } = await req.json();
     if (!text || typeof text !== "string") throw new Error("Missing 'text'");
 
-    const result = await callLovableAI(text);
+    const result = await callGemini(text);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
