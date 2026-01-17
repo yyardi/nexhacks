@@ -60,7 +60,7 @@ Updated all 4 Edge Functions to use **Google Gemini API** instead of Lovable gat
    ```env
    # Supabase - ONLY public keys
    VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key-here
+   VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
    ```
 
    **⚠️ CRITICAL**: All private API keys must be set as Supabase secrets:

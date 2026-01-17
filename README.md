@@ -126,7 +126,7 @@ See [SETUP.md](./SETUP.md#deploying-to-production) for deployment guides.
 ```env
 # Supabase - ONLY public keys in frontend
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
 ```
 
 ### Supabase Secrets (Private API keys):

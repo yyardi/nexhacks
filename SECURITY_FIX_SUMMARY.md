@@ -18,7 +18,7 @@ Your `.env` file should ONLY contain these two public Supabase keys:
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
 ```
 
 These are safe to expose in the browser - they're designed to be public.

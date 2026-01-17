@@ -161,7 +161,7 @@ Open `.env` and add ONLY your Supabase public credentials:
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
 ```
 
 That's it! Do NOT add any other API keys to this file.
@@ -259,7 +259,7 @@ The app will be available at: **http://localhost:8080**
    - Go to your project → **Settings** → **Environment Variables**
    - Add ONLY the two Supabase variables from your `.env` file:
      - `VITE_SUPABASE_URL`
-     - `VITE_SUPABASE_ANON_KEY`
+     - `VITE_SUPABASE_PUBLISHABLE_KEY`
    - **Do NOT add API keys here** - they should only be in Supabase secrets
 
 ### Option 2: Netlify
