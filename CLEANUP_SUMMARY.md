@@ -56,26 +56,22 @@ Updated all 4 Edge Functions to use **Google Gemini API** instead of Lovable gat
 
 2. **Get your API keys and fill in `.env`:**
 
-   **Required for current features:**
+   **Frontend .env (Public keys only):**
    ```env
-   # Supabase (create new project at https://app.supabase.com)
+   # Supabase - ONLY public keys
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key-here
-
-   # Gemini (get from https://aistudio.google.com/app/apikey)
-   GEMINI_API_KEY=your-gemini-api-key-here
    ```
 
-   **Required for Arden Hackathon features:**
-   ```env
-   # LiveKit (get from https://cloud.livekit.io)
-   LIVEKIT_API_KEY=your-livekit-api-key
-   LIVEKIT_API_SECRET=your-livekit-api-secret
-   LIVEKIT_URL=wss://your-project.livekit.cloud
-
-   # Overshoot (get from https://overshoot.ai)
-   OVERSHOOT_API_KEY=your-overshoot-api-key
+   **⚠️ CRITICAL**: All private API keys must be set as Supabase secrets:
+   ```bash
+   supabase secrets set GEMINI_API_KEY=your-key
+   supabase secrets set LIVEKIT_API_KEY=your-key
+   supabase secrets set LIVEKIT_API_SECRET=your-secret
+   supabase secrets set OVERSHOOT_API_KEY=your-key
    ```
+
+   **NEVER put private API keys in your .env file!**
 
 ### Step 2: Set Up Supabase
 

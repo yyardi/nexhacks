@@ -121,24 +121,28 @@ See [SETUP.md](./SETUP.md#deploying-to-production) for deployment guides.
 
 ## 🔑 Environment Variables
 
-Required variables (add to `.env`):
+### Frontend `.env` file (Public keys only):
 
 ```env
-# Supabase
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-
-# Gemini (for Sentiment Analysis & Edge Functions)
-GEMINI_API_KEY=
-
-# LiveKit (for Arden features)
-LIVEKIT_API_KEY=
-LIVEKIT_API_SECRET=
-LIVEKIT_URL=
-
-# Overshoot (for Arden features)
-OVERSHOOT_API_KEY=
+# Supabase - ONLY public keys in frontend
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
+
+### Supabase Secrets (Private API keys):
+
+All private API keys must be set as Supabase secrets:
+
+```bash
+supabase secrets set GEMINI_API_KEY=your-key
+supabase secrets set LIVEKIT_API_KEY=your-key
+supabase secrets set LIVEKIT_API_SECRET=your-secret
+supabase secrets set OVERSHOOT_API_KEY=your-key
+```
+
+**⚠️ NEVER put private API keys in your `.env` file - they will be exposed in the browser!**
+
+See [SETUP.md](./SETUP.md) for detailed instructions.
 
 ## 🛠️ Tech Stack
 

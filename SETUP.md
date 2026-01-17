@@ -114,15 +114,19 @@ supabase login
 # Link your project
 supabase link --project-ref YOUR_PROJECT_ID
 
-# Deploy all functions
+# Deploy Arden-compliant functions (uses Gemini only)
 supabase functions deploy interview-orchestrator
 supabase functions deploy analyze-psychiatric
 supabase functions deploy generate-session-insights
-supabase functions deploy transcribe-audio
-supabase functions deploy transcribe-audio-file
 supabase functions deploy translate-to-english
-supabase functions deploy realtime-chat
 ```
+
+**Note**: The following functions are NOT compliant with Arden spec and should not be deployed:
+- `realtime-chat` (uses OpenAI Realtime API - should use LiveKit instead)
+- `transcribe-audio` (uses AssemblyAI - should use LiveKit/Deepgram instead)
+- `transcribe-audio-file` (uses AssemblyAI - should use LiveKit/Deepgram instead)
+
+Per Arden spec, only LiveKit Agents and Overshoot RealtimeVision are permitted.
 
 #### Set Edge Function Environment Variables:
 
@@ -138,7 +142,14 @@ supabase secrets list
 
 ## API Keys Configuration
 
-### Step 1: Create .env File
+### Important Security Model
+
+**⚠️ CRITICAL SECURITY NOTE:**
+- **Frontend `.env` file**: ONLY contains public Supabase keys (safe to expose to browser)
+- **Supabase Secrets**: All private API keys (Gemini, LiveKit, Overshoot) go here
+- **Never** put private API keys in your frontend `.env` file - they will be exposed in the browser!
+
+### Step 1: Set Up Frontend Environment (.env)
 
 Copy the example file:
 
@@ -146,45 +157,56 @@ Copy the example file:
 cp .env.example .env
 ```
 
-### Step 2: Fill in Your Credentials
+Open `.env` and add ONLY your Supabase public credentials:
 
-Open `.env` and add your API keys:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
 
-#### Required for Basic Functionality:
+That's it! Do NOT add any other API keys to this file.
 
-1. **Supabase** (from Step 2 of Supabase Setup):
-   ```env
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key-here
-   ```
+### Step 2: Set Up Supabase Secrets (All Private API Keys)
 
-2. **Gemini API** (for Edge Functions & Sentiment Analysis):
-   - Get your API key from: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-   - Note: This is set in Supabase secrets (see above), NOT in .env
-   - Per Arden Spec: Gemini is required for transcript sentiment analysis (Milestone 3.5)
-   ```env
-   GEMINI_API_KEY=your-gemini-api-key-here
-   ```
+All private API keys must be set as Supabase secrets. These are used by your Edge Functions server-side.
 
-#### Required for Arden Real-Time Companion (New Spec):
+#### Get Your API Keys:
 
-3. **LiveKit** (for real-time voice/video):
+1. **Gemini API** (Required):
+   - Go to: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+   - Click "Create API Key"
+   - Copy the key
+
+2. **LiveKit** (Required for Arden features):
    - Sign up at: [https://cloud.livekit.io](https://cloud.livekit.io)
    - Create a new project
    - Go to **Settings** → **Keys**
    - Copy API Key and API Secret
-   ```env
-   LIVEKIT_API_KEY=your-livekit-api-key
-   LIVEKIT_API_SECRET=your-livekit-api-secret
-   LIVEKIT_URL=wss://your-project.livekit.cloud
-   ```
 
-4. **Overshoot RealtimeVision** (for emotional perception):
+3. **Overshoot RealtimeVision** (Required for Arden features):
    - Sign up at: [https://overshoot.ai](https://overshoot.ai)
    - Get your API key from dashboard
-   ```env
-   OVERSHOOT_API_KEY=your-overshoot-api-key
-   ```
+
+#### Set the Secrets:
+
+```bash
+# Login to Supabase CLI (if not already)
+supabase login
+
+# Link to your project (if not already)
+supabase link --project-ref YOUR_PROJECT_ID
+
+# Set all secrets
+supabase secrets set GEMINI_API_KEY=your-gemini-api-key-here
+supabase secrets set LIVEKIT_API_KEY=your-livekit-api-key
+supabase secrets set LIVEKIT_API_SECRET=your-livekit-api-secret
+supabase secrets set OVERSHOOT_API_KEY=your-overshoot-api-key
+
+# Verify secrets are set
+supabase secrets list
+```
+
+You should see all 4 secrets listed (values will be hidden for security).
 
 ---
 
@@ -235,7 +257,10 @@ The app will be available at: **http://localhost:8080**
 
 3. Add environment variables in Vercel dashboard:
    - Go to your project → **Settings** → **Environment Variables**
-   - Add all variables from your `.env` file
+   - Add ONLY the two Supabase variables from your `.env` file:
+     - `VITE_SUPABASE_URL`
+     - `VITE_SUPABASE_ANON_KEY`
+   - **Do NOT add API keys here** - they should only be in Supabase secrets
 
 ### Option 2: Netlify
 
