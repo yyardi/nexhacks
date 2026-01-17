@@ -72,30 +72,6 @@ This will install all required dependencies including:
 
 ## Supabase Setup
 
-### Step 1: Create a New Supabase Project
-
-1. Go to [https://app.supabase.com](https://app.supabase.com)
-2. Click **"New Project"**
-3. Choose your organization
-4. Fill in project details:
-   - **Name**: `arden-mental-health` (or your choice)
-   - **Database Password**: Create a strong password (save this!)
-   - **Region**: Choose closest to your users
-5. Click **"Create new project"**
-6. Wait 2-3 minutes for the project to be provisioned
-
-### Step 2: Get Your Supabase Credentials
-
-Once your project is ready:
-
-1. Go to **Settings** → **API** in your Supabase dashboard
-2. Copy the following values:
-   - **Project URL** (looks like: `https://xxxxx.supabase.co`)
-   - **anon public key** (the `anon` key under "Project API keys")
-
-### Step 3: Run Database Migrations
-
-You have two options:
 
 #### Option A: Using Supabase Dashboard (Easier)
 
