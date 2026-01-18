@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -88,7 +88,7 @@ const Dashboard = () => {
   const [speechRate, setSpeechRate] = useState<number | null>(null);
   const [longPauses, setLongPauses] = useState<number>(0);
 
-  // Voice AI (LiveKit) - enabled together with recording
+  // Voice AI Mode (LiveKit)
   const [useVoiceAI, setUseVoiceAI] = useState(false);
   const [voiceAIConnected, setVoiceAIConnected] = useState(false);
 
@@ -97,10 +97,6 @@ const Dashboard = () => {
   const [currentEmotion, setCurrentEmotion] = useState<string | null>(null);
   const [currentOvershotData, setCurrentOvershotData] = useState<VisualObservation | null>(null);
   const [emotionMemorySize, setEmotionMemorySize] = useState(0);
-
-  // Track crisis keywords detected during session
-  const [detectedCrisisKeywords, setDetectedCrisisKeywords] = useState<any[]>([]);
-  const [saveProgress, setSaveProgress] = useState(0);
 
   // Save session (persist transcript + biometrics + media)
   const { saveSession } = useSessionPersistence();
@@ -328,25 +324,12 @@ const Dashboard = () => {
     }
   }, [timeline]);
 
-  // Handle crisis keywords detected from LiveKit
-  const handleCrisisKeywordDetection = useCallback((keywords: any[]) => {
-    setDetectedCrisisKeywords(prev => [...prev, ...keywords]);
-  }, []);
-
   // Handle crisis alerts from voice AI
   const handleVoiceAICrisisAlert = useCallback((alert: any) => {
     // Map to our safety assessment format
     const riskLevel = alert.risk_level === 'imminent' ? 'Imminent'
       : alert.risk_level === 'high' ? 'High'
       : alert.risk_level === 'moderate' ? 'Moderate' : 'Low';
-
-    // Track crisis keyword for saving
-    setDetectedCrisisKeywords(prev => [...prev, {
-      category: alert.category,
-      severity: alert.risk_level,
-      reason: alert.reason,
-      timestamp: alert.timestamp || Date.now(),
-    }]);
 
     setSafetyAssessment(prev => ({
       suicide_risk_level: riskLevel as any,
@@ -396,13 +379,12 @@ const Dashboard = () => {
       videoChunksRef.current = [];
       setRecordedAudioBlob(null);
       setRecordedVideoBlob(null);
-      setDetectedCrisisKeywords([]);
       sessionStartedAtRef.current = Date.now();
       sessionEndedAtRef.current = null;
 
       // Enable both systems together
-      setUseVoiceAI(true);
       setIsRecording(true);
+      setUseVoiceAI(true);
 
       const backendUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -517,8 +499,6 @@ const Dashboard = () => {
       console.error(error);
       toast({ variant: 'destructive', title: 'Recording Error', description: 'Failed to start recording' });
       setIsRecording(false);
-      setUseVoiceAI(false);
-      setVoiceAIConnected(false);
       setConnectionStatus('disconnected');
     }
   };
@@ -698,15 +678,9 @@ const Dashboard = () => {
   const handleSaveSession = useCallback(async () => {
     try {
       setIsSavingSession(true);
-      setSaveProgress(0);
 
       const startedAt = sessionStartedAtRef.current ?? timeline.timelineData.sessionStartTime;
       const endedAt = sessionEndedAtRef.current ?? Date.now();
-
-      // Simulate progress updates during save
-      const progressInterval = setInterval(() => {
-        setSaveProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
 
       const { sessionId } = await saveSession({
         patientName,
@@ -723,25 +697,17 @@ const Dashboard = () => {
         endedAt,
         audioBlob: recordedAudioBlob,
         videoBlob: recordedVideoBlob,
-        crisisKeywords: detectedCrisisKeywords,
       });
-
-      clearInterval(progressInterval);
-      setSaveProgress(100);
-
-      await new Promise(resolve => setTimeout(resolve, 300)); // Brief pause to show 100%
 
       toast({ title: 'Saved', description: 'Session stored successfully' });
       setShowSaveDialog(false);
-      setSaveProgress(0);
       navigate(`/session/${sessionId}`);
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Save failed', description: e?.message || 'Could not save session' });
-      setSaveProgress(0);
     } finally {
       setIsSavingSession(false);
     }
-  }, [assessmentTools, clinicianName, differential, navigate, patientName, chiefComplaint, recordedAudioBlob, recordedVideoBlob, safetyAssessment, saveSession, timeline.timelineData.biometrics, timeline.timelineData.questions, toast, treatmentPlan, detectedCrisisKeywords]);
+  }, [assessmentTools, clinicianName, differential, navigate, patientName, chiefComplaint, recordedAudioBlob, recordedVideoBlob, safetyAssessment, saveSession, timeline.timelineData.biometrics, timeline.timelineData.questions, toast, treatmentPlan]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background">
@@ -796,20 +762,7 @@ const Dashboard = () => {
               <span>Video {recordedVideoBlob ? '✓' : '—'}</span>
               <span>Biometrics: {timeline.timelineData.biometrics.length} pts</span>
               <span>Transcript: {timeline.timelineData.transcripts.length} turns</span>
-              {detectedCrisisKeywords.length > 0 && (
-                <span className="text-orange-600">Crisis keywords: {detectedCrisisKeywords.length}</span>
-              )}
             </div>
-
-            {isSavingSession && saveProgress > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Saving session...</span>
-                  <span className="font-medium">{saveProgress}%</span>
-                </div>
-                <Progress value={saveProgress} className="h-2" />
-              </div>
-            )}
           </div>
 
           <DialogFooter>
@@ -891,7 +844,7 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                {/* Voice AI Panel - Active when useVoiceAI is enabled */}
+                {/* Voice AI Panel */}
                 {useVoiceAI && (
                   <Suspense fallback={
                     <Card className="p-4">
@@ -907,7 +860,6 @@ const Dashboard = () => {
                       onCrisisAlert={handleVoiceAICrisisAlert}
                       onConnectionChange={setVoiceAIConnected}
                       emotions={biometrics.emotions ? { ...biometrics.emotions } as Record<string, number> : null}
-                      className="max-w-2xl"
                     />
                   </Suspense>
                 )}
@@ -916,7 +868,7 @@ const Dashboard = () => {
               {/* Right: Video + Biometrics */}
               <div className="flex flex-col gap-4">
                 <div className="relative">
-                  <VideoCapture videoRef={videoRef} isRecording={isRecording} onStream={handleVideoStream} />
+                  <VideoCapture videoRef={videoRef} isRecording={isRecording || useVoiceAI} onStream={handleVideoStream} />
                   {/* Overshoot Emotion Overlay */}
                   {isRecording && currentEmotion && (
                     <div className="absolute bottom-4 left-4">
@@ -927,7 +879,7 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
-                {isRecording && (
+                {(isRecording || useVoiceAI) && (
                   <div className="flex flex-col gap-2">
                     <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
                       <Heart className="h-3 w-3 text-destructive" />
