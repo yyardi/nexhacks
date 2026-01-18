@@ -20,6 +20,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { generateLiveKitToken } from '@/lib/livekit-token';
+import {
+  detectCrisisKeywords,
+  highlightKeywordsInText,
+  getCategoryDisplayName,
+  getRecommendedAction,
+  type DetectedKeyword,
+  type TextSegment,
+} from '@/lib/crisis-detection';
 
 interface CrisisAlert {
   risk_level: 'moderate' | 'high' | 'imminent';
@@ -35,6 +43,8 @@ interface TranscriptMessage {
   speaker: 'user' | 'agent';
   timestamp: number;
   isFinal: boolean;
+  detectedKeywords?: DetectedKeyword[];
+  textSegments?: TextSegment[];
 }
 
 interface LiveKitVoicePanelProps {
@@ -44,6 +54,54 @@ interface LiveKitVoicePanelProps {
   onConnectionChange?: (connected: boolean) => void;
   emotions?: Record<string, number> | null;
   className?: string;
+}
+
+// Component to render text with highlighted crisis keywords
+function HighlightedText({
+  segments,
+  isUserMessage,
+}: {
+  segments?: TextSegment[];
+  isUserMessage: boolean;
+}) {
+  if (!segments || segments.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {segments.map((segment, index) => {
+        if (!segment.isHighlighted) {
+          return <span key={index}>{segment.text}</span>;
+        }
+
+        // Highlighted keyword with severity-based styling
+        const severityStyles = {
+          imminent: isUserMessage
+            ? 'bg-red-300 text-red-900 font-bold underline decoration-2'
+            : 'bg-red-500/30 text-red-200 font-bold underline decoration-2',
+          high: isUserMessage
+            ? 'bg-orange-300 text-orange-900 font-semibold underline'
+            : 'bg-orange-500/30 text-orange-200 font-semibold underline',
+          moderate: isUserMessage
+            ? 'bg-yellow-300 text-yellow-900 font-medium'
+            : 'bg-yellow-500/30 text-yellow-200 font-medium',
+        };
+
+        const style = segment.severity ? severityStyles[segment.severity] : '';
+
+        return (
+          <span
+            key={index}
+            className={cn('rounded px-0.5 transition-colors', style)}
+            title={segment.category ? getCategoryDisplayName(segment.category) : undefined}
+          >
+            {segment.text}
+          </span>
+        );
+      })}
+    </>
+  );
 }
 
 // Inner component that uses LiveKit hooks
@@ -61,6 +119,7 @@ function VoiceAssistantUI({
   const { localParticipant, microphoneTrack } = useLocalParticipant();
   const lastEmotionRef = useRef<string>('');
   const transcriptProcessedRef = useRef<Set<string>>(new Set());
+  const crisisAlertedRef = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
   const hasInitializedRef = useRef(false);
@@ -83,6 +142,7 @@ function VoiceAssistantUI({
     if (room) {
       hasInitializedRef.current = false;
       transcriptProcessedRef.current.clear();
+      crisisAlertedRef.current.clear();
       setTranscriptMessages([]);
       console.log('[VoiceAssistant] Room initialized, ready for new session');
     }
@@ -104,12 +164,16 @@ function VoiceAssistantUI({
     }
   }, [transcriptMessages]);
 
-  // Process user transcriptions and add to messages
+  // Process user transcriptions and add to messages with crisis detection
   useEffect(() => {
     if (!userTranscriptions) return;
 
     userTranscriptions.forEach((segment) => {
       const key = `user-${segment.id}`;
+
+      // Run crisis detection on user speech
+      const crisisResult = detectCrisisKeywords(segment.text);
+      const textSegments = highlightKeywordsInText(segment.text, crisisResult.detectedKeywords);
 
       // Update or add transcript message
       setTranscriptMessages(prev => {
@@ -120,6 +184,8 @@ function VoiceAssistantUI({
           speaker: 'user',
           timestamp: Date.now(),
           isFinal: segment.final,
+          detectedKeywords: crisisResult.detectedKeywords,
+          textSegments,
         };
 
         if (existingIndex >= 0) {
@@ -133,13 +199,30 @@ function VoiceAssistantUI({
         }
       });
 
+      // Generate crisis alert for final transcripts with detected keywords
+      if (segment.final && crisisResult.hasKeywords && !crisisAlertedRef.current.has(key) && onCrisisAlert) {
+        crisisAlertedRef.current.add(key);
+
+        // Create alert from the highest severity detected
+        const categories = Array.from(crisisResult.categories);
+        const primaryCategory = categories[0];
+
+        onCrisisAlert({
+          risk_level: crisisResult.highestSeverity as 'moderate' | 'high' | 'imminent',
+          category: getCategoryDisplayName(primaryCategory),
+          reason: `Detected: "${crisisResult.detectedKeywords.map(k => k.keyword).join('", "')}"`,
+          recommended_action: getRecommendedAction(crisisResult.highestSeverity as 'moderate' | 'high' | 'imminent'),
+          timestamp: Date.now(),
+        });
+      }
+
       // Call callback for final transcripts
       if (segment.final && !transcriptProcessedRef.current.has(key) && onTranscript) {
         transcriptProcessedRef.current.add(key);
         onTranscript(segment.text, 'user');
       }
     });
-  }, [userTranscriptions, onTranscript]);
+  }, [userTranscriptions, onTranscript, onCrisisAlert]);
 
   // Process agent transcriptions and add to messages
   useEffect(() => {
@@ -296,12 +379,38 @@ function VoiceAssistantUI({
                       message.speaker === 'user'
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted",
-                      !message.isFinal && "opacity-70 italic"
+                      !message.isFinal && "opacity-70 italic",
+                      // Add border highlight if crisis keywords detected
+                      message.detectedKeywords && message.detectedKeywords.length > 0 && (
+                        message.detectedKeywords.some(k => k.severity === 'imminent')
+                          ? "ring-2 ring-red-500 ring-offset-1"
+                          : message.detectedKeywords.some(k => k.severity === 'high')
+                          ? "ring-2 ring-orange-500 ring-offset-1"
+                          : "ring-1 ring-yellow-500"
+                      )
                     )}
                   >
-                    <p>{message.text}</p>
+                    <p>
+                      {message.textSegments && message.textSegments.length > 0 ? (
+                        <HighlightedText
+                          segments={message.textSegments}
+                          isUserMessage={message.speaker === 'user'}
+                        />
+                      ) : (
+                        message.text
+                      )}
+                    </p>
                     {!message.isFinal && (
                       <span className="text-xs opacity-70 ml-1">...</span>
+                    )}
+                    {/* Show crisis indicator */}
+                    {message.detectedKeywords && message.detectedKeywords.length > 0 && message.isFinal && (
+                      <div className="flex items-center gap-1 mt-1 pt-1 border-t border-current/20">
+                        <AlertTriangle className="w-3 h-3" />
+                        <span className="text-xs">
+                          {message.detectedKeywords.length} concern{message.detectedKeywords.length > 1 ? 's' : ''} detected
+                        </span>
+                      </div>
                     )}
                   </div>
                   {message.speaker === 'user' && (
