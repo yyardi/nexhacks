@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Shield, AlertTriangle, FileText, Mic, MicOff, Clock, Pill, LogOut, FolderOpen, Search, Heart, MoreHorizontal } from 'lucide-react';
+import { Brain, Shield, AlertTriangle, FileText, Mic, MicOff, Clock, Pill, LogOut, FolderOpen, Search, Heart, MoreHorizontal, Eye, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AudioRecorder } from '@/utils/audioRecorder';
@@ -25,6 +26,11 @@ import { useTimelineAnalysis } from '@/hooks/useTimelineAnalysis';
 import { useSmartQA } from '@/hooks/useSmartQA';
 import { useInterviewOrchestrator } from '@/hooks/useInterviewOrchestrator';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
+import { useOvershotVision } from '@/hooks/useOvershotVision';
+import { VisualObservation } from '@/types/overshoot';
+import { getMemorySize } from '@/utils/temporalEmotionMemory';
+
+const OVERSHOOT_API_KEY = import.meta.env.VITE_OVERSHOOT_API_KEY || '';
 
 interface Diagnosis {
   diagnosis: string;
@@ -77,6 +83,11 @@ const Dashboard = () => {
   const [speechRate, setSpeechRate] = useState<number | null>(null);
   const [longPauses, setLongPauses] = useState<number>(0);
 
+  // Overshoot visual emotion observation
+  const [visualObservations, setVisualObservations] = useState<VisualObservation[]>([]);
+  const [currentEmotion, setCurrentEmotion] = useState<string | null>(null);
+  const [emotionMemorySize, setEmotionMemorySize] = useState(0);
+
   // Save session (persist transcript + biometrics + media)
   const { saveSession } = useSessionPersistence();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -116,6 +127,30 @@ const Dashboard = () => {
   const biometrics = useBiometrics(videoRef, isRecording);
   const pulse = usePulseEstimation(videoRef, isRecording);
 
+  // Overshoot vision for enhanced emotion detection
+  const overshoot = useOvershotVision({
+    apiKey: OVERSHOOT_API_KEY,
+    onNovelObservation: useCallback((obs: VisualObservation) => {
+      setVisualObservations(prev => [obs, ...prev].slice(0, 20));
+      setCurrentEmotion(obs.emotion);
+
+      // Show toast for distress signals
+      if (obs.distress_signal) {
+        toast({
+          title: 'Distress Signal Detected',
+          description: obs.distress_signal,
+          variant: 'destructive',
+        });
+      }
+    }, [toast]),
+    onRawObservation: useCallback((obs: VisualObservation) => {
+      // Update current emotion for live display
+      if (obs.emotion) {
+        setCurrentEmotion(obs.emotion);
+      }
+    }, []),
+  });
+
   // Smart Q&A: auto-detect asked/answered
   const { detectAnswer, detectClinicianQuestion } = useSmartQA();
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
@@ -126,6 +161,14 @@ const Dashboard = () => {
     transcripts: timeline.timelineData.transcripts,
     questions: timeline.timelineData.questions,
   });
+
+  // Update Overshoot memory size periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEmotionMemorySize(getMemorySize());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Snapshot biometrics (incl. emotion) every second
   useEffect(() => {
@@ -142,6 +185,11 @@ const Dashboard = () => {
         }
       }
 
+      // Prefer Overshoot emotion if available (more accurate)
+      if (currentEmotion) {
+        dominantEmotion = currentEmotion;
+      }
+
       timeline.addBiometricSnapshot({
         eyeContact: biometrics.eyeContact,
         gazeStability: biometrics.gazeStability,
@@ -155,7 +203,7 @@ const Dashboard = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRecording, biometrics, pulse.currentBPM, timeline]);
+  }, [isRecording, biometrics, pulse.currentBPM, timeline, currentEmotion]);
 
   // Auth check
   useEffect(() => {
@@ -382,7 +430,19 @@ const Dashboard = () => {
       }
 
       await audioRecorderRef.current.start();
-      toast({ title: 'Recording Started', description: 'Session active' });
+
+      // Start Overshoot visual emotion detection
+      if (OVERSHOOT_API_KEY) {
+        try {
+          await overshoot.startVision();
+          console.log('[Overshoot] Visual emotion detection started');
+        } catch (err) {
+          console.warn('[Overshoot] Failed to start:', err);
+          // Continue even if Overshoot fails
+        }
+      }
+
+      toast({ title: 'Recording Started', description: 'Session active with AI emotion detection' });
     } catch (error) {
       console.error(error);
       toast({ variant: 'destructive', title: 'Recording Error', description: 'Failed to start recording' });
@@ -393,6 +453,16 @@ const Dashboard = () => {
 
   const stopRecording = async () => {
     sessionEndedAtRef.current = Date.now();
+
+    // Stop Overshoot visual emotion detection
+    if (overshoot.isActive) {
+      try {
+        await overshoot.stopVision();
+        console.log('[Overshoot] Visual emotion detection stopped');
+      } catch (err) {
+        console.warn('[Overshoot] Failed to stop:', err);
+      }
+    }
 
     // Stop realtime transcription stream
     audioRecorderRef.current?.stop();
@@ -719,11 +789,30 @@ const Dashboard = () => {
 
               {/* Right: Video + Biometrics */}
               <div className="flex flex-col gap-4">
-                <VideoCapture videoRef={videoRef} isRecording={isRecording} onStream={handleVideoStream} />
+                <div className="relative">
+                  <VideoCapture videoRef={videoRef} isRecording={isRecording} onStream={handleVideoStream} />
+                  {/* Overshoot Emotion Overlay */}
+                  {isRecording && currentEmotion && (
+                    <div className="absolute bottom-4 left-4">
+                      <Badge className="bg-primary/90 text-white text-sm px-3 py-1 backdrop-blur-sm">
+                        <Eye className="h-3 w-3 mr-1 inline" />
+                        {currentEmotion}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
                 {isRecording && (
-                  <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-                    <Heart className="h-3 w-3 text-destructive" />
-                    {pulse.isCalibrating ? 'Calibrating pulse...' : `${pulse.currentBPM ?? '--'} BPM (${pulse.confidence}% conf)`}
+                  <div className="flex flex-col gap-2">
+                    <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <Heart className="h-3 w-3 text-destructive" />
+                      {pulse.isCalibrating ? 'Calibrating pulse...' : `${pulse.currentBPM ?? '--'} BPM (${pulse.confidence}% conf)`}
+                    </div>
+                    {overshoot.isActive && (
+                      <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+                        <Activity className="h-3 w-3 text-primary" />
+                        AI Vision Active ({visualObservations.length} observations, {emotionMemorySize} in memory)
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -812,12 +901,62 @@ const Dashboard = () => {
 
           {/* Right: Analysis Tabs */}
           <Tabs defaultValue="assessment" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="vision"><Eye className="h-4 w-4 mr-1" />Vision</TabsTrigger>
               <TabsTrigger value="safety"><Shield className="h-4 w-4 mr-1" />Safety</TabsTrigger>
               <TabsTrigger value="diagnosis"><Brain className="h-4 w-4 mr-1" />Dx</TabsTrigger>
               <TabsTrigger value="assessment"><FileText className="h-4 w-4 mr-1" />Q&A</TabsTrigger>
               <TabsTrigger value="treatment"><Pill className="h-4 w-4 mr-1" />Tx</TabsTrigger>
             </TabsList>
+
+            {/* Vision Tab - Overshoot Observations */}
+            <TabsContent value="vision" className="h-[calc(100vh-28rem)] overflow-y-auto">
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  Visual Emotion Observations
+                  <Badge variant="outline" className="ml-auto">
+                    {visualObservations.length} novel states
+                  </Badge>
+                </h3>
+
+                {visualObservations.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Eye className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p>No observations yet. Start recording to see AI-detected emotions.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {visualObservations.map((obs, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10 rounded-lg p-4 border border-blue-200/50 dark:border-blue-800/50"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          {obs.emotion && (
+                            <Badge className="bg-primary text-white">
+                              {obs.emotion}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(obs.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                          {obs.behavior && <p><strong>Behavior:</strong> {obs.behavior}</p>}
+                          {obs.engagement && <p><strong>Engagement:</strong> {obs.engagement}</p>}
+                          {obs.distress_signal && (
+                            <p className="text-red-600 dark:text-red-400 font-semibold">
+                              ⚠️ <strong>Distress:</strong> {obs.distress_signal}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </TabsContent>
 
             <TabsContent value="safety" className="h-[calc(100vh-28rem)] overflow-y-auto">
               <Card className="p-6">

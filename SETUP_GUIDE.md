@@ -49,9 +49,11 @@ npm run dev
 
 ### 5. Test It
 
-Open: http://localhost:8080/realtime
+Open: http://localhost:8080/dashboard
 
-Click "Start Observation" and grant camera access.
+Click "Start Interview" and grant camera/microphone access.
+
+Overshoot visual emotion detection will automatically start alongside the interview.
 
 ---
 
@@ -81,7 +83,7 @@ Click "Start Observation" and grant camera access.
 ## 🎬 Demo Flow (For Hackathon)
 
 ### Test Visual Emotion Detection (2 min)
-1. Go to `/realtime`
+1. Go to `/dashboard`
 2. Click "Start Observation"
 3. Show neutral face → see "neutral" or "calm"
 4. Smile → see "happy" or "joyful"
@@ -132,7 +134,7 @@ src/
 │   ├── overshoot.ts                # Type definitions
 │   └── sentiment.ts                # Type definitions
 └── pages/
-    └── RealtimeCompanion.tsx       # Main UI (/realtime page)
+    └── Dashboard.tsx       # Main UI (/dashboard page)
 
 supabase/functions/
 └── analyze-sentiment/              # Gemini sentiment edge function
@@ -143,7 +145,7 @@ supabase/functions/
 
 ## 🎨 UI Features
 
-### Real-Time Companion Page (`/realtime`)
+### Real-Time Companion Page (`/dashboard`)
 - Live camera feed with emotion overlay
 - Color-coded emotion badges (green=positive, red=distress, blue=neutral)
 - Current observation details (emotion, behavior, engagement, distress)
@@ -286,4 +288,4 @@ The following are planned but **not yet implemented**:
 
 **You're ready to go!** 🎉
 
-Navigate to http://localhost:8080/realtime and start your demo.
+Navigate to http://localhost:8080/dashboard and start your demo.
