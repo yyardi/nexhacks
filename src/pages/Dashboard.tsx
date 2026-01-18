@@ -86,6 +86,7 @@ const Dashboard = () => {
   // Overshoot visual emotion observation
   const [visualObservations, setVisualObservations] = useState<VisualObservation[]>([]);
   const [currentEmotion, setCurrentEmotion] = useState<string | null>(null);
+  const [currentOvershotData, setCurrentOvershotData] = useState<VisualObservation | null>(null);
   const [emotionMemorySize, setEmotionMemorySize] = useState(0);
 
   // Save session (persist transcript + biometrics + media)
@@ -127,12 +128,13 @@ const Dashboard = () => {
   const biometrics = useBiometrics(videoRef, isRecording);
   const pulse = usePulseEstimation(videoRef, isRecording);
 
-  // Overshoot vision for enhanced emotion detection
+  // Overshoot vision for enhanced emotion and biometric detection
   const overshoot = useOvershotVision({
     apiKey: OVERSHOOT_API_KEY,
     onNovelObservation: useCallback((obs: VisualObservation) => {
       setVisualObservations(prev => [obs, ...prev].slice(0, 20));
       setCurrentEmotion(obs.emotion);
+      setCurrentOvershotData(obs);
 
       // Show toast for distress signals
       if (obs.distress_signal) {
@@ -144,7 +146,8 @@ const Dashboard = () => {
       }
     }, [toast]),
     onRawObservation: useCallback((obs: VisualObservation) => {
-      // Update current emotion for live display
+      // Update current observation data for live biometrics
+      setCurrentOvershotData(obs);
       if (obs.emotion) {
         setCurrentEmotion(obs.emotion);
       }
@@ -190,11 +193,12 @@ const Dashboard = () => {
         dominantEmotion = currentEmotion;
       }
 
+      // Use Overshoot biometrics if available, otherwise fall back to face-api.js
       timeline.addBiometricSnapshot({
-        eyeContact: biometrics.eyeContact,
-        gazeStability: biometrics.gazeStability,
-        breathingRate: biometrics.breathingRate,
-        blinkRate: biometrics.blinkRate,
+        eyeContact: currentOvershotData?.eye_contact ?? biometrics.eyeContact,
+        gazeStability: currentOvershotData?.gaze_stability ?? biometrics.gazeStability,
+        breathingRate: currentOvershotData?.breathing_rate ?? biometrics.breathingRate,
+        blinkRate: currentOvershotData?.blink_rate ?? biometrics.blinkRate,
         headPose: biometrics.headPose,
         pulseEstimate: pulse.currentBPM ?? undefined,
         emotions: biometrics.emotions ? { ...biometrics.emotions } as Record<string, number> : null,
@@ -203,7 +207,7 @@ const Dashboard = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRecording, biometrics, pulse.currentBPM, timeline, currentEmotion]);
+  }, [isRecording, biometrics, pulse.currentBPM, timeline, currentEmotion, currentOvershotData]);
 
   // Auth check
   useEffect(() => {
@@ -659,7 +663,7 @@ const Dashboard = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="text-2xl font-bold text-primary">Arden</div>
+            <img src="/arden-logo.png" alt="Arden" className="h-8" />
             <div className="border-l pl-4 hidden sm:block">
               <h1 className="text-lg font-semibold">Clinical Dashboard</h1>
               <p className="text-xs text-muted-foreground">AI-Powered Psychiatric Assessment</p>
@@ -887,10 +891,10 @@ const Dashboard = () => {
             </Card>
 
             <BiometricsLivePanel
-              eyeContact={biometrics.eyeContact}
-              gazeStability={biometrics.gazeStability}
-              breathingRate={biometrics.breathingRate}
-              blinkRate={biometrics.blinkRate}
+              eyeContact={currentOvershotData?.eye_contact ?? biometrics.eyeContact}
+              gazeStability={currentOvershotData?.gaze_stability ?? biometrics.gazeStability}
+              breathingRate={currentOvershotData?.breathing_rate ?? biometrics.breathingRate}
+              blinkRate={currentOvershotData?.blink_rate ?? biometrics.blinkRate}
               headPose={biometrics.headPose}
               pulseEstimate={pulse.currentBPM}
               pulseConfidence={pulse.confidence}

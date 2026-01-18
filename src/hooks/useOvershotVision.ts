@@ -29,26 +29,68 @@ interface UseOvershotVisionReturn {
 }
 
 const OVERSHOOT_PROMPT = `
-You are observing a person speaking to an AI mental health companion.
+You are a clinical biometric analysis system observing a patient in real-time.
 
-Report ONLY what is directly visible.
+Analyze the person's facial expressions, eye movements, breathing patterns, and physical indicators.
 
-Output JSON:
+Output JSON with precise measurements:
 {
   "emotion": string | null,
   "behavior": string | null,
   "engagement": string | null,
-  "distress_signal": string | null
+  "distress_signal": string | null,
+  "eye_contact": number | null,
+  "gaze_stability": number | null,
+  "breathing_rate": number | null,
+  "blink_rate": number | null,
+  "engagement_level": number | null
 }
 
-Rules:
-- No diagnoses
-- No inferred thoughts or intentions
-- No repetition
-- Use neutral, descriptive language
-- Null if nothing notable
-- For emotion, provide ONE WORD to describe the user's facial emotion (e.g., "calm", "sad", "anxious", "neutral")
-- For distress_signal, only report if clear signs of distress are visible (e.g., "crying", "head in hands")
+MEASUREMENT GUIDELINES:
+
+emotion: ONE WORD describing facial emotion (e.g., "neutral", "calm", "anxious", "sad", "happy", "distressed", "fearful")
+
+behavior: Observable physical behavior (e.g., "Still posture", "Fidgeting", "Hand gestures", "Head movement")
+
+engagement: Descriptive engagement quality (e.g., "Focused", "Distracted", "Engaged", "Withdrawn")
+
+distress_signal: ONLY if clear distress visible (e.g., "Crying", "Head in hands", "Visible trembling", null otherwise)
+
+eye_contact: Percentage (0-100) of time making direct eye contact with camera
+- 80-100: Strong consistent eye contact
+- 50-80: Moderate eye contact
+- 20-50: Intermittent eye contact
+- 0-20: Avoiding eye contact
+
+gaze_stability: Percentage (0-100) measuring how stable/steady their gaze is
+- 80-100: Very stable, focused gaze
+- 50-80: Mostly stable with some movement
+- 20-50: Frequent eye movements, scanning
+- 0-20: Rapid, unstable eye movements
+
+breathing_rate: Estimated breaths per minute (typical range: 12-20)
+- Watch for chest/shoulder movement
+- Normal: 12-18 breaths/min
+- Fast/anxious: 20+ breaths/min
+- Slow/calm: <12 breaths/min
+
+blink_rate: Estimated blinks per minute (typical range: 15-20)
+- Normal: 15-20 blinks/min
+- Anxious/stressed: 25+ blinks/min
+- Focused/calm: <15 blinks/min
+
+engagement_level: Overall engagement percentage (0-100)
+- 80-100: Highly engaged, attentive, responsive
+- 50-80: Moderately engaged
+- 20-50: Low engagement, distracted
+- 0-20: Disengaged, withdrawn
+
+CRITICAL RULES:
+- Base measurements on VISIBLE indicators only
+- If you cannot reliably measure something, use null
+- Be precise with numerical values
+- No diagnoses or psychological interpretations
+- Focus on objective physical observations
 `;
 
 export function useOvershotVision({
@@ -118,10 +160,10 @@ export function useOvershotVision({
         prompt: OVERSHOOT_PROMPT,
 
         processing: {
-          sampling_ratio: 0.15,
-          fps: 24,
-          clip_length_seconds: 3,
-          delay_seconds: 1
+          sampling_ratio: 0.3,          // 30% sampling for high-quality biometric analysis
+          fps: 30,                      // 30 FPS for smooth capture
+          clip_length_seconds: 2,       // 2-second clips for faster results
+          delay_seconds: 0.5            // Update every 0.5 seconds for real-time feel
         },
 
         source: {
