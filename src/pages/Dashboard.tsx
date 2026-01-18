@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Shield, AlertTriangle, FileText, Mic, MicOff, Clock, Pill, LogOut, FolderOpen, Search, Heart, MoreHorizontal, Phone, PhoneOff, Waves, Eye, Activity } from 'lucide-react';
+import { Brain, Shield, AlertTriangle, FileText, Mic, MicOff, Clock, Pill, LogOut, FolderOpen, Search, Heart, MoreHorizontal, Eye, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,7 +8,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -88,8 +87,7 @@ const Dashboard = () => {
   const [speechRate, setSpeechRate] = useState<number | null>(null);
   const [longPauses, setLongPauses] = useState<number>(0);
 
-  // Voice AI Mode (LiveKit)
-  const [useVoiceAI, setUseVoiceAI] = useState(false);
+  // Voice AI connection status (LiveKit)
   const [voiceAIConnected, setVoiceAIConnected] = useState(false);
 
   // Overshoot visual emotion observation
@@ -374,6 +372,7 @@ const Dashboard = () => {
 
   const startRecording = async () => {
     try {
+      // Initialize a fresh session
       timeline.startNewSession();
       audioChunksRef.current = [];
       videoChunksRef.current = [];
@@ -382,8 +381,16 @@ const Dashboard = () => {
       sessionStartedAtRef.current = Date.now();
       sessionEndedAtRef.current = null;
 
-      // Set recording state early so VideoCapture can request camera.
+      // Clear any previous state
+      accumulatedTextRef.current = '';
+      setDifferential([]);
+      setSafetyAssessment(null);
+      setAssessmentTools([]);
+      setTreatmentPlan(null);
+
+      // Set recording state early so VideoCapture and LiveKit can initialize
       setIsRecording(true);
+      console.log('[Dashboard] Starting AI Companion session with Voice AI + Overshoot');
 
       const backendUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -504,6 +511,10 @@ const Dashboard = () => {
 
   const stopRecording = async () => {
     sessionEndedAtRef.current = Date.now();
+    console.log('[Dashboard] Stopping AI Companion session');
+
+    // Disable Voice AI
+    setVoiceAIConnected(false);
 
     // Stop Overshoot visual emotion detection
     if (overshoot.isActive) {
@@ -787,109 +798,66 @@ const Dashboard = () => {
                     <div>
                       <h2 className="text-2xl font-bold">Session Recording</h2>
                       <p className="text-sm text-muted-foreground">
-                        {useVoiceAI
-                          ? (voiceAIConnected ? 'Voice AI session active' : 'Voice AI ready')
-                          : (isRecording ? 'Recording in progress...' : 'Ready to start new session')}
+                        {isRecording
+                          ? 'AI Companion session active'
+                          : 'Ready to start new session'}
                       </p>
                     </div>
                   </div>
-
-                  {/* Voice AI Toggle */}
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="voice-ai-mode" className="text-sm font-medium cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <Waves className="h-4 w-4 text-primary" />
-                        <span className="hidden sm:inline">Voice AI</span>
-                      </div>
-                    </Label>
-                    <Switch
-                      id="voice-ai-mode"
-                      checked={useVoiceAI}
-                      onCheckedChange={(checked) => {
-                        if (isRecording) {
-                          toast({ variant: 'destructive', title: 'Stop recording first', description: 'End the current session before switching modes' });
-                          return;
-                        }
-                        
-                        console.log(`[Dashboard] Voice AI toggle: ${checked ? 'ON' : 'OFF'}`);
-                        
-                        if (checked) {
-                          // Start fresh session when enabling Voice AI
-                          console.log('[Dashboard] Starting new Voice AI session');
-                          timeline.startNewSession();
-                          sessionStartedAtRef.current = Date.now();
-                          sessionEndedAtRef.current = null;
-                          // Clear any previous state
-                          accumulatedTextRef.current = '';
-                          setDifferential([]);
-                          setSafetyAssessment(null);
-                          setAssessmentTools([]);
-                          setTreatmentPlan(null);
-                        } else {
-                          // Clean up when disabling Voice AI
-                          console.log('[Dashboard] Disabling Voice AI');
-                          setVoiceAIConnected(false);
-                        }
-                        
-                        setUseVoiceAI(checked);
-                      }}
-                    />
-                  </div>
                 </div>
 
-                {/* Standard Recording Controls */}
-                {!useVoiceAI && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      {!isRecording ? (
-                        <Button onClick={startRecording} size="lg" className="gap-2">
-                          <Mic className="h-5 w-5" />
-                          Start Session
-                        </Button>
-                      ) : (
-                        <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
-                          <MicOff className="h-5 w-5" />
-                          End Session
-                        </Button>
-                      )}
+                {/* Session Controls */}
+                <div className="flex items-center gap-3">
+                  {!isRecording ? (
+                    <Button onClick={startRecording} size="lg" className="gap-2">
+                      <Mic className="h-5 w-5" />
+                      Start Session
+                    </Button>
+                  ) : (
+                    <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
+                      <MicOff className="h-5 w-5" />
+                      End Session
+                    </Button>
+                  )}
 
-                      {/* Compact menu for upload options */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon">
-                            <MoreHorizontal className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          <DropdownMenuItem asChild>
-                            <TranscriptUpload onUpload={handleTranscriptUpload} isProcessing={isProcessing} />
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <AudioUpload onTranscriptReady={handleTranscriptUpload} isProcessing={isProcessing} />
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  {/* Compact menu for upload options */}
+                  {!isRecording && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem asChild>
+                          <TranscriptUpload onUpload={handleTranscriptUpload} isProcessing={isProcessing} />
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <AudioUpload onTranscriptReady={handleTranscriptUpload} isProcessing={isProcessing} />
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+
+                {/* Session Status */}
+                {isRecording && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${voiceAIConnected ? 'bg-success animate-pulse' : 'bg-muted-foreground'}`} />
+                      <span>{voiceAIConnected ? 'Voice AI Connected' : 'Connecting...'}</span>
                     </div>
-
-                    {isRecording && (
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-success animate-pulse' : 'bg-muted-foreground'}`} />
-                          <span>{connectionStatus === 'connected' ? 'Connected' : 'Connecting...'}</span>
-                        </div>
-                        {speechRate !== null && (
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{speechRate.toFixed(1)} wpm</span>
-                          </div>
-                        )}
+                    {speechRate !== null && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{speechRate.toFixed(1)} wpm</span>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
 
-                {/* Voice AI Panel */}
-                {useVoiceAI && (
+                {/* Voice AI Panel - shown when session is active */}
+                {isRecording && (
                   <Suspense fallback={
                     <Card className="p-4">
                       <div className="flex items-center justify-center py-8 gap-2">
@@ -899,7 +867,7 @@ const Dashboard = () => {
                     </Card>
                   }>
                     <LiveKitVoicePanel
-                      isEnabled={useVoiceAI}
+                      isEnabled={isRecording}
                       onTranscript={handleVoiceAITranscript}
                       onCrisisAlert={handleVoiceAICrisisAlert}
                       onConnectionChange={setVoiceAIConnected}
@@ -912,7 +880,7 @@ const Dashboard = () => {
               {/* Right: Video + Biometrics */}
               <div className="flex flex-col gap-4">
                 <div className="relative">
-                  <VideoCapture videoRef={videoRef} isRecording={isRecording || useVoiceAI} onStream={handleVideoStream} />
+                  <VideoCapture videoRef={videoRef} isRecording={isRecording} onStream={handleVideoStream} />
                   {/* Overshoot Emotion Overlay */}
                   {isRecording && currentEmotion && (
                     <div className="absolute bottom-4 left-4">
@@ -923,7 +891,7 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
-                {(isRecording || useVoiceAI) && (
+                {isRecording && (
                   <div className="flex flex-col gap-2">
                     <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
                       <Heart className="h-3 w-3 text-destructive" />
