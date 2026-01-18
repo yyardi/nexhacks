@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { generateLiveKitToken } from '@/lib/livekit-token';
 
 interface CrisisAlert {
   risk_level: 'moderate' | 'high' | 'imminent';
@@ -189,39 +189,39 @@ export function LiveKitVoicePanel({
       return;
     }
 
-    const generateToken = async () => {
+    const createToken = async () => {
       setIsConnecting(true);
       setError(null);
 
       try {
-        // Try to get token from Supabase edge function
-        const { data, error: fnError } = await supabase.functions.invoke('livekit-token', {
-          body: {
-            roomName: 'arden-session-1',
-            identity: `user-${Date.now()}`,
-            name: 'Patient',
-          },
-        });
+        const apiKey = import.meta.env.VITE_LIVEKIT_API_KEY;
+        const apiSecret = import.meta.env.VITE_LIVEKIT_API_SECRET;
 
-        if (fnError) throw fnError;
-        if (!data?.token) throw new Error('No token received');
+        if (!apiKey || !apiSecret) {
+          throw new Error('LiveKit credentials not configured');
+        }
 
-        setToken(data.token);
+        // Generate token locally with unique room name
+        const uniqueRoomName = `arden-session-${Date.now()}`;
+        const generatedToken = await generateLiveKitToken(
+          apiKey,
+          apiSecret,
+          uniqueRoomName,
+          `user-${Date.now()}`,
+          'Patient'
+        );
+        console.log('Connecting to room:', uniqueRoomName);
+
+        setToken(generatedToken);
       } catch (e) {
         console.error('Token generation failed:', e);
-        // Fallback: use env token if available
-        const envToken = import.meta.env.VITE_LIVEKIT_TOKEN;
-        if (envToken) {
-          setToken(envToken);
-        } else {
-          setError('Failed to connect to voice assistant. Please check configuration.');
-        }
+        setError('Failed to connect to voice assistant. Please check configuration.');
       } finally {
         setIsConnecting(false);
       }
     };
 
-    generateToken();
+    createToken();
   }, [isEnabled]);
 
   const handleCrisisAlert = useCallback((alert: CrisisAlert) => {
