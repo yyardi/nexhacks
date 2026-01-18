@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { generateLiveKitToken } from '@/lib/livekit-token';
 
@@ -351,7 +353,31 @@ export function LiveKitVoicePanel({
   const [connectionKey, setConnectionKey] = useState(0);
   const isGeneratingTokenRef = useRef(false);
 
+  // New state for consent
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
+  const [recordingConsent, setRecordingConsent] = useState<boolean | null>(null);
+
   const serverUrl = import.meta.env.VITE_LIVEKIT_URL || '';
+
+  // Handle recording consent
+  const handleConsentResponse = useCallback((consent: boolean) => {
+    setRecordingConsent(consent);
+    setShowConsentDialog(false);
+
+    if (!consent) {
+      setError('Recording consent is required to use voice features.');
+    }
+  }, []);
+
+  // Reset consent (useful for testing or if user wants to change mind)
+  const resetConsent = useCallback(() => {
+    setRecordingConsent(null);
+    setShowConsentDialog(true);
+    setError(null);
+    setToken(null);
+    setIsConnecting(false);
+    setCrisisAlerts([]);
+  }, []);
 
   // Generate a new token
   const createToken = useCallback(async () => {
@@ -403,6 +429,9 @@ export function LiveKitVoicePanel({
     setIsConnecting(false);
     setCrisisAlerts([]);
     isGeneratingTokenRef.current = false;
+    // Don't reset consent state - keep it for future sessions
+    // setRecordingConsent(null);
+    // setShowConsentDialog(false);
     onConnectionChange?.(false);
   }, [onConnectionChange]);
 
@@ -413,7 +442,19 @@ export function LiveKitVoicePanel({
       return;
     }
 
-    // Fresh start when enabled
+    // Show consent dialog first if consent not given
+    if (recordingConsent === null) {
+      setShowConsentDialog(true);
+      return;
+    }
+
+    // If consent denied, don't proceed
+    if (recordingConsent === false) {
+      setError('Recording consent is required to use voice features.');
+      return;
+    }
+
+    // If consent given, proceed directly to creating token
     console.log('[LiveKit] Voice AI enabled, initializing fresh session');
     createToken();
 
@@ -423,7 +464,7 @@ export function LiveKitVoicePanel({
         cleanup();
       }
     };
-  }, [isEnabled, connectionKey, createToken, cleanup]);
+  }, [isEnabled, recordingConsent, createToken, cleanup]);
 
   // Handle disconnection - regenerate token for reconnection
   const handleDisconnected = useCallback(() => {
@@ -435,10 +476,11 @@ export function LiveKitVoicePanel({
     isGeneratingTokenRef.current = false;
   }, [onConnectionChange]);
 
-  // Handle retry - regenerate token with new room
+  // Handle retry - regenerate token with new room and reset connection
   const handleRetry = useCallback(() => {
     console.log('[LiveKit] Retrying connection');
     setError(null);
+    setIsConnecting(false);
     isGeneratingTokenRef.current = false;
     setConnectionKey(prev => prev + 1);
   }, []);
@@ -458,6 +500,41 @@ export function LiveKitVoicePanel({
 
   return (
     <div className={cn("space-y-4", className)}>
+      {/* Recording Consent Dialog */}
+      <Dialog open={showConsentDialog} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              Recording Consent Required
+            </DialogTitle>
+            <DialogDescription>
+              To provide AI-powered voice assistance, Arden needs to record and process your audio.
+              Your privacy and data security are our top priorities.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Alert>
+            <Shield className="h-4 w-4" />
+            <AlertDescription>
+              <strong>What we record:</strong> Only your voice during the session<br />
+              <strong>How it's used:</strong> Real-time transcription and AI analysis<br />
+              <strong>Data handling:</strong> Encrypted, HIPAA-compliant storage<br />
+              <strong>Retention:</strong> Automatically deleted after session
+            </AlertDescription>
+          </Alert>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => handleConsentResponse(false)}>
+              Deny
+            </Button>
+            <Button onClick={() => handleConsentResponse(true)}>
+              I Consent
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Crisis Alerts */}
       {crisisAlerts.length > 0 && (
         <div className="space-y-2">
@@ -558,6 +635,9 @@ export function LiveKitVoicePanel({
 
       {/* Feature Pills */}
       <div className="flex flex-wrap gap-2">
+        <Badge variant="secondary" className="text-xs gap-1">
+          <Shield className="w-3 h-3" /> Consent Required
+        </Badge>
         <Badge variant="secondary" className="text-xs gap-1">
           <Volume2 className="w-3 h-3" /> Voice AI
         </Badge>
