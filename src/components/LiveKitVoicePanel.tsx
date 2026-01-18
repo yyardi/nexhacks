@@ -343,7 +343,7 @@ function VoiceAssistantUI({
       </div>
 
       {/* Live Transcription Display */}
-      <div className="border rounded-lg bg-muted/30 max-w-full w-full">
+      <div className="border rounded-lg bg-muted/30">
         <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/50">
           <MessageCircle className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium">Live Transcription</span>
@@ -353,7 +353,7 @@ function VoiceAssistantUI({
             </Badge>
           )}
         </div>
-        <ScrollArea className="h-48 w-full">
+        <ScrollArea className="h-48">
           <div ref={scrollRef} className="p-3 space-y-3">
             {transcriptMessages.length === 0 ? (
               <div className="text-center text-sm text-muted-foreground py-8">
@@ -375,7 +375,7 @@ function VoiceAssistantUI({
                   )}
                   <div
                     className={cn(
-                      "max-w-[70%] rounded-lg px-3 py-2 text-sm break-words",
+                      "max-w-[80%] rounded-lg px-3 py-2 text-sm",
                       message.speaker === 'user'
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted",
