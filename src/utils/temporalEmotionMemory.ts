@@ -14,8 +14,17 @@ const MEMORY_WINDOW_MS = 60_000; // 60 seconds
  * @returns true if the observation is novel, false if it's a duplicate
  */
 export function isNovelObservation(obs: VisualObservation): boolean {
-  // Create a unique key from all observation fields
-  const key = `${obs.emotion}|${obs.behavior}|${obs.engagement}|${obs.distress_signal}`;
+  // Create a unique key from significant observation fields
+  // Group fields by category to detect meaningful state changes
+  const key = [
+    obs.emotion,
+    obs.emotional_valence,
+    obs.distress_signal,
+    obs.gaze_direction,
+    obs.posture,
+    obs.hand_gestures
+  ].join('|');
+
   const now = Date.now();
 
   // Check if we've seen this exact combination recently

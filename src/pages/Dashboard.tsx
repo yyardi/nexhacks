@@ -28,6 +28,7 @@ import { useInterviewOrchestrator } from '@/hooks/useInterviewOrchestrator';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
 import { useOvershotVision } from '@/hooks/useOvershotVision';
 import { VisualObservation } from '@/types/overshoot';
+import { BiometricTimeline } from '@/components/BiometricTimeline';
 import { getMemorySize } from '@/utils/temporalEmotionMemory';
 
 const OVERSHOOT_API_KEY = import.meta.env.VITE_OVERSHOOT_API_KEY || '';
@@ -913,53 +914,22 @@ const Dashboard = () => {
               <TabsTrigger value="treatment"><Pill className="h-4 w-4 mr-1" />Tx</TabsTrigger>
             </TabsList>
 
-            {/* Vision Tab - Overshoot Observations */}
+            {/* Vision Tab - Comprehensive Biometric Timeline */}
             <TabsContent value="vision" className="h-[calc(100vh-28rem)] overflow-y-auto">
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                  Visual Emotion Observations
-                  <Badge variant="outline" className="ml-auto">
-                    {visualObservations.length} novel states
-                  </Badge>
-                </h3>
-
-                {visualObservations.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Eye className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                    <p>No observations yet. Start recording to see AI-detected emotions.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {visualObservations.map((obs, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10 rounded-lg p-4 border border-blue-200/50 dark:border-blue-800/50"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          {obs.emotion && (
-                            <Badge className="bg-primary text-white">
-                              {obs.emotion}
-                            </Badge>
-                          )}
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(obs.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <div className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                          {obs.behavior && <p><strong>Behavior:</strong> {obs.behavior}</p>}
-                          {obs.engagement && <p><strong>Engagement:</strong> {obs.engagement}</p>}
-                          {obs.distress_signal && (
-                            <p className="text-red-600 dark:text-red-400 font-semibold">
-                              ⚠️ <strong>Distress:</strong> {obs.distress_signal}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+              {visualObservations.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <Eye className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                  <h3 className="text-lg font-semibold mb-2">No Visual Data Yet</h3>
+                  <p className="text-muted-foreground">
+                    Start recording to see comprehensive facial, behavioral, and physiological analysis
+                  </p>
+                </Card>
+              ) : (
+                <BiometricTimeline
+                  observations={visualObservations}
+                  currentObservation={currentOvershotData}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="safety" className="h-[calc(100vh-28rem)] overflow-y-auto">

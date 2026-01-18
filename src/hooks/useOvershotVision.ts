@@ -28,32 +28,108 @@ interface UseOvershotVisionReturn {
   resetSession: () => void;
 }
 
-const OVERSHOOT_PROMPT = `Analyze the person's face and body language. Provide measurements:
+const OVERSHOOT_PROMPT = `Analyze facial expressions, eye behavior, and body language for clinical mental health assessment.
 
-emotion: ONE WORD (e.g., neutral, calm, anxious, sad, happy, stressed)
-behavior: Observable behavior (e.g., "Still", "Fidgeting", "Gesturing")
-engagement: Description (e.g., "Focused", "Distracted", "Engaged")
-distress_signal: Only if visible distress, otherwise null
-eye_contact: Percentage 0-100 of eye contact with camera
-gaze_stability: Percentage 0-100 of gaze steadiness
-breathing_rate: Breaths per minute (12-20 normal)
-blink_rate: Blinks per minute (15-20 normal)
-engagement_level: Percentage 0-100 of overall engagement`;
+Provide precise measurements:
+
+EMOTION & AFFECT:
+- emotion: Primary emotion (neutral/calm/anxious/stressed/sad/happy/angry/fearful)
+- emotional_valence: Positive/negative/neutral emotional tone
+- arousal_level: Energy level 0-100 (0=low energy, 100=high energy)
+- micro_expressions: Brief involuntary expressions if visible, otherwise null
+
+EYE BEHAVIOR:
+- eye_contact: Direct eye contact percentage 0-100
+- gaze_direction: Where looking (camera/away/down/up/left/right)
+- gaze_stability: Steadiness 0-100 (0=darting, 100=steady)
+- blink_rate: Blinks per minute (normal 15-20, anxiety >25)
+- eye_widening: Eye openness 0-100 (0=narrow, 50=normal, 100=wide)
+- pupil_response: Pupil size change (dilated/normal/constricted)
+
+FACIAL TENSION:
+- eyebrow_position: Raised/neutral/furrowed
+- forehead_tension: Tension level 0-100
+- jaw_tension: Clenching 0-100 (0=relaxed, 100=clenched)
+- lip_tension: Pressing/biting 0-100
+
+HEAD & POSTURE:
+- head_tilt: Degrees from vertical (-90 to 90)
+- head_movement: Still/nodding/shaking/frequent
+- posture: Slouched/upright/leaning
+
+BREATHING & PHYSIOLOGY:
+- breathing_rate: Breaths per minute (12-20 normal, >20 anxious)
+- breathing_depth: Shallow/normal/deep
+- breathing_pattern: Regular/irregular/rapid
+- visible_tremor: Any shaking/trembling, otherwise null
+- skin_changes: Flushing/pallor/sweating visible, otherwise null
+
+BEHAVIOR & ENGAGEMENT:
+- fidgeting: Hand/finger movements 0-100
+- self_soothing: Touching face/hair/neck, otherwise null
+- hand_gestures: Expressive/minimal/restless/still
+- engagement_level: Focus and presence 0-100
+- restlessness: Overall movement 0-100
+
+DISTRESS INDICATORS:
+- distress_signal: Visible distress/crisis indicators, otherwise null
+- confidence_score: Measurement confidence 0-100`;
 
 const OUTPUT_SCHEMA = {
   type: 'object',
   properties: {
-    emotion: { type: ['string', 'null'] },
-    behavior: { type: ['string', 'null'] },
-    engagement: { type: ['string', 'null'] },
+    // Emotion & Affect
+    emotion: { type: 'string' },
+    emotional_valence: { type: 'string' },
+    arousal_level: { type: 'number' },
+    micro_expressions: { type: ['string', 'null'] },
+
+    // Eye Behavior
+    eye_contact: { type: 'number' },
+    gaze_direction: { type: 'string' },
+    gaze_stability: { type: 'number' },
+    blink_rate: { type: 'number' },
+    eye_widening: { type: 'number' },
+    pupil_response: { type: 'string' },
+
+    // Facial Tension
+    eyebrow_position: { type: 'string' },
+    forehead_tension: { type: 'number' },
+    jaw_tension: { type: 'number' },
+    lip_tension: { type: 'number' },
+
+    // Head & Posture
+    head_tilt: { type: 'number' },
+    head_movement: { type: 'string' },
+    posture: { type: 'string' },
+
+    // Breathing & Physiology
+    breathing_rate: { type: 'number' },
+    breathing_depth: { type: 'string' },
+    breathing_pattern: { type: 'string' },
+    visible_tremor: { type: ['string', 'null'] },
+    skin_changes: { type: ['string', 'null'] },
+
+    // Behavior & Engagement
+    fidgeting: { type: 'number' },
+    self_soothing: { type: ['string', 'null'] },
+    hand_gestures: { type: 'string' },
+    engagement_level: { type: 'number' },
+    restlessness: { type: 'number' },
+
+    // Distress Indicators
     distress_signal: { type: ['string', 'null'] },
-    eye_contact: { type: ['number', 'null'] },
-    gaze_stability: { type: ['number', 'null'] },
-    breathing_rate: { type: ['number', 'null'] },
-    blink_rate: { type: ['number', 'null'] },
-    engagement_level: { type: ['number', 'null'] }
+    confidence_score: { type: 'number' }
   },
-  required: ['emotion', 'behavior', 'engagement', 'distress_signal', 'eye_contact', 'gaze_stability', 'breathing_rate', 'blink_rate', 'engagement_level']
+  required: [
+    'emotion', 'emotional_valence', 'arousal_level', 'micro_expressions',
+    'eye_contact', 'gaze_direction', 'gaze_stability', 'blink_rate', 'eye_widening', 'pupil_response',
+    'eyebrow_position', 'forehead_tension', 'jaw_tension', 'lip_tension',
+    'head_tilt', 'head_movement', 'posture',
+    'breathing_rate', 'breathing_depth', 'breathing_pattern', 'visible_tremor', 'skin_changes',
+    'fidgeting', 'self_soothing', 'hand_gestures', 'engagement_level', 'restlessness',
+    'distress_signal', 'confidence_score'
+  ]
 };
 
 export function useOvershotVision({
@@ -133,17 +209,15 @@ export function useOvershotVision({
       // Initialize Overshoot RealtimeVision
       console.log('[Overshoot] Initializing RealtimeVision...');
       const vision = new RealtimeVision({
-        apiUrl: 'https://api.overshoot.ai',
+        apiUrl: 'https://cluster1.overshoot.ai/api/v0.2',
         apiKey,
-        backend: 'overshoot',
         model: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
-        debug: true,
 
         prompt: OVERSHOOT_PROMPT,
         outputSchema: OUTPUT_SCHEMA,
 
         processing: {
-          sampling_ratio: 0.2,
+          sampling_ratio: 0.1,
           fps: 30,
           clip_length_seconds: 1,
           delay_seconds: 1
