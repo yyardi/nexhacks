@@ -80,6 +80,9 @@ interface TreatmentPlan {
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [mode, setMode] = useState<'doctor' | 'patient'>(() => {
+    return (localStorage.getItem('dashboardMode') as 'doctor' | 'patient') || 'doctor';
+  });
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
@@ -239,6 +242,18 @@ const Dashboard = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
+  };
+
+  const toggleMode = () => {
+    const newMode = mode === 'doctor' ? 'patient' : 'doctor';
+    setMode(newMode);
+    localStorage.setItem('dashboardMode', newMode);
+    toast({
+      title: `Switched to ${newMode === 'doctor' ? 'Doctor' : 'Patient'} Mode`,
+      description: newMode === 'doctor'
+        ? 'Full analytics dashboard for clinical interviews'
+        : 'Minimal interface for AI-powered patient interviews'
+    });
   };
 
   const performAnalysis = async (textToAnalyze: string) => {
@@ -751,15 +766,29 @@ const Dashboard = () => {
           <div className="flex items-center gap-4">
             <img src="/arden-logo.png" alt="Arden" className="h-8" />
             <div className="border-l pl-4 hidden sm:block">
-              <h1 className="text-lg font-semibold">Clinical Dashboard</h1>
-              <p className="text-xs text-muted-foreground">AI-Powered Psychiatric Assessment</p>
+              <h1 className="text-lg font-semibold">
+                {mode === 'doctor' ? 'Clinical Dashboard' : 'Patient Interview'}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {mode === 'doctor' ? 'AI-Powered Psychiatric Assessment' : 'AI Companion Session'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/sessions')}>
-              <FolderOpen className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Sessions</span>
+            <Button
+              variant={mode === 'patient' ? 'default' : 'outline'}
+              size="sm"
+              onClick={toggleMode}
+            >
+              <User className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">{mode === 'doctor' ? "I'm a Patient" : "Doctor Mode"}</span>
             </Button>
+            {mode === 'doctor' && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/sessions')}>
+                <FolderOpen className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Sessions</span>
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Sign Out</span>
@@ -921,8 +950,8 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                {/* Voice AI Panel - shown when session is active */}
-                {isRecording && (
+                {/* Voice AI Panel - shown when session is active in PATIENT mode only */}
+                {isRecording && mode === 'patient' && (
                   <Suspense fallback={
                     <Card className="p-4">
                       <div className="flex items-center justify-center py-8 gap-2">
@@ -931,13 +960,15 @@ const Dashboard = () => {
                       </div>
                     </Card>
                   }>
-                    <LiveKitVoicePanel
-                      isEnabled={isRecording}
+                    <div className="max-w-2xl">
+                      <LiveKitVoicePanel
+                        isEnabled={isRecording}
                       onTranscript={handleVoiceAITranscript}
                       onCrisisAlert={handleVoiceAICrisisAlert}
                       onConnectionChange={setVoiceAIConnected}
                       emotions={biometrics.emotions ? { ...biometrics.emotions } as Record<string, number> : null}
                     />
+                    </div>
                   </Suspense>
                 )}
               </div>
