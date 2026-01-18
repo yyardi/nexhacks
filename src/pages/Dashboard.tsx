@@ -106,6 +106,7 @@ const Dashboard = () => {
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
   const [saveStatus, setSaveStatus] = useState('');
+  const [uploadedSessionReady, setUploadedSessionReady] = useState(false);
   const [patientName, setPatientName] = useState('');
   const [clinicianName, setClinicianName] = useState('');
   const [chiefComplaint, setChiefComplaint] = useState('');
