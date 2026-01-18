@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AudioRecorder } from '@/utils/audioRecorder';
@@ -33,6 +34,7 @@ import { useOvershotVision } from '@/hooks/useOvershotVision';
 import { VisualObservation } from '@/types/overshoot';
 import { BiometricTimeline } from '@/components/BiometricTimeline';
 import { getMemorySize } from '@/utils/temporalEmotionMemory';
+import type { DetectedKeyword } from '@/lib/crisis-detection';
 
 const OVERSHOOT_API_KEY = import.meta.env.VITE_OVERSHOOT_API_KEY || '';
 
@@ -96,10 +98,15 @@ const Dashboard = () => {
   const [currentOvershotData, setCurrentOvershotData] = useState<VisualObservation | null>(null);
   const [emotionMemorySize, setEmotionMemorySize] = useState(0);
 
+  // Crisis keywords detected from LiveKit transcripts
+  const [detectedKeywords, setDetectedKeywords] = useState<DetectedKeyword[]>([]);
+
   // Save session (persist transcript + biometrics + media)
   const { saveSession } = useSessionPersistence();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSavingSession, setIsSavingSession] = useState(false);
+  const [saveProgress, setSaveProgress] = useState(0);
+  const [saveProgressText, setSaveProgressText] = useState('');
   const [patientName, setPatientName] = useState('');
   const [clinicianName, setClinicianName] = useState('');
   const [chiefComplaint, setChiefComplaint] = useState('');
@@ -310,10 +317,15 @@ const Dashboard = () => {
   };
 
   // Handle voice AI transcript from LiveKit
-  const handleVoiceAITranscript = useCallback((text: string, speaker: 'user' | 'agent') => {
+  const handleVoiceAITranscript = useCallback((text: string, speaker: 'user' | 'agent', keywords?: DetectedKeyword[]) => {
     const mappedSpeaker = speaker === 'user' ? 'patient' : 'clinician';
     timeline.addTranscript(text, mappedSpeaker as 'clinician' | 'patient', { rawText: text });
     accumulatedTextRef.current += (accumulatedTextRef.current ? ' ' : '') + text;
+
+    // Store detected keywords from user speech
+    if (keywords && keywords.length > 0) {
+      setDetectedKeywords(prev => [...prev, ...keywords]);
+    }
 
     // Trigger analysis periodically
     const now = Date.now();
@@ -387,6 +399,7 @@ const Dashboard = () => {
       setSafetyAssessment(null);
       setAssessmentTools([]);
       setTreatmentPlan(null);
+      setDetectedKeywords([]);
 
       // Set recording state early so VideoCapture and LiveKit can initialize
       setIsRecording(true);
@@ -685,9 +698,23 @@ const Dashboard = () => {
   const handleSaveSession = useCallback(async () => {
     try {
       setIsSavingSession(true);
+      setSaveProgress(0);
+      setSaveProgressText('Preparing session data...');
 
       const startedAt = sessionStartedAtRef.current ?? timeline.timelineData.sessionStartTime;
       const endedAt = sessionEndedAtRef.current ?? Date.now();
+
+      // Simulated progress updates (actual upload happens in saveSession)
+      setSaveProgress(20);
+      setSaveProgressText('Saving transcript and analysis...');
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setSaveProgress(40);
+      setSaveProgressText('Uploading audio recording...');
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setSaveProgress(60);
+      setSaveProgressText('Uploading video recording...');
 
       const { sessionId } = await saveSession({
         patientName,
@@ -704,7 +731,11 @@ const Dashboard = () => {
         endedAt,
         audioBlob: recordedAudioBlob,
         videoBlob: recordedVideoBlob,
+        detectedKeywords,
       });
+
+      setSaveProgress(100);
+      setSaveProgressText('Session saved successfully!');
 
       toast({ title: 'Saved', description: 'Session stored successfully' });
       setShowSaveDialog(false);
@@ -713,8 +744,10 @@ const Dashboard = () => {
       toast({ variant: 'destructive', title: 'Save failed', description: e?.message || 'Could not save session' });
     } finally {
       setIsSavingSession(false);
+      setSaveProgress(0);
+      setSaveProgressText('');
     }
-  }, [assessmentTools, clinicianName, differential, navigate, patientName, chiefComplaint, recordedAudioBlob, recordedVideoBlob, safetyAssessment, saveSession, timeline.timelineData.biometrics, timeline.timelineData.questions, toast, treatmentPlan]);
+  }, [assessmentTools, clinicianName, differential, navigate, patientName, chiefComplaint, recordedAudioBlob, recordedVideoBlob, safetyAssessment, saveSession, timeline.timelineData.biometrics, timeline.timelineData.questions, toast, treatmentPlan, detectedKeywords]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background">
@@ -769,7 +802,21 @@ const Dashboard = () => {
               <span>Video {recordedVideoBlob ? '✓' : '—'}</span>
               <span>Biometrics: {timeline.timelineData.biometrics.length} pts</span>
               <span>Transcript: {timeline.timelineData.transcripts.length} turns</span>
+              {detectedKeywords.length > 0 && (
+                <span>Crisis Keywords: {detectedKeywords.length}</span>
+              )}
             </div>
+
+            {/* Progress Bar */}
+            {isSavingSession && (
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{saveProgressText}</span>
+                  <span className="text-muted-foreground">{saveProgress}%</span>
+                </div>
+                <Progress value={saveProgress} className="h-2" />
+              </div>
+            )}
           </div>
 
           <DialogFooter>

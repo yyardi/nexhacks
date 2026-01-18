@@ -49,7 +49,7 @@ interface TranscriptMessage {
 
 interface LiveKitVoicePanelProps {
   isEnabled: boolean;
-  onTranscript?: (text: string, speaker: 'user' | 'agent') => void;
+  onTranscript?: (text: string, speaker: 'user' | 'agent', keywords?: DetectedKeyword[]) => void;
   onCrisisAlert?: (alert: CrisisAlert) => void;
   onConnectionChange?: (connected: boolean) => void;
   emotions?: Record<string, number> | null;
@@ -216,10 +216,10 @@ function VoiceAssistantUI({
         });
       }
 
-      // Call callback for final transcripts
+      // Call callback for final transcripts with detected keywords
       if (segment.final && !transcriptProcessedRef.current.has(key) && onTranscript) {
         transcriptProcessedRef.current.add(key);
-        onTranscript(segment.text, 'user');
+        onTranscript(segment.text, 'user', crisisResult.detectedKeywords);
       }
     });
   }, [userTranscriptions, onTranscript, onCrisisAlert]);
@@ -608,7 +608,7 @@ export function LiveKitVoicePanel({
   }
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-4 max-w-2xl", className)}>
       {/* Recording Consent Dialog */}
       <Dialog open={showConsentDialog} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md">

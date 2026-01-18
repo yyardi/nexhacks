@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ClinicalQuestion, BiometricSnapshot } from "@/hooks/useTimelineAnalysis";
+import type { DetectedKeyword } from "@/lib/crisis-detection";
 
 type SaveSessionInput = {
   patientName: string;
@@ -17,6 +18,7 @@ type SaveSessionInput = {
   endedAt: number;
   audioBlob: Blob | null;
   videoBlob: Blob | null;
+  detectedKeywords?: DetectedKeyword[];
 };
 
 function computeEmotionSummary(biometrics: BiometricSnapshot[]) {
@@ -137,6 +139,7 @@ export const useSessionPersistence = () => {
       duration_seconds: durationSeconds,
       audio_url: audioPath,
       video_url: videoPath,
+      crisis_keywords_detected: (input.detectedKeywords || []) as any,
       session_status: "completed",
       updated_at: new Date().toISOString(),
     });
