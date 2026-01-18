@@ -839,51 +839,49 @@ const Dashboard = () => {
 
                 {/* Recording Controls */}
                 <div className="flex items-center gap-3">
-                      {!isRecording ? (
-                        <Button onClick={startRecording} size="lg" className="gap-2">
-                          <Mic className="h-5 w-5" />
-                          Start Session
-                        </Button>
-                      ) : (
-                        <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
-                          <MicOff className="h-5 w-5" />
-                          End Session
-                        </Button>
-                      )}
+                  {!isRecording ? (
+                    <Button onClick={startRecording} size="lg" className="gap-2">
+                      <Mic className="h-5 w-5" />
+                      Start Session
+                    </Button>
+                  ) : (
+                    <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
+                      <MicOff className="h-5 w-5" />
+                      End Session
+                    </Button>
+                  )}
 
-                      {/* Compact menu for upload options */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon">
-                            <MoreHorizontal className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          <DropdownMenuItem asChild>
-                            <TranscriptUpload onUpload={handleTranscriptUpload} isProcessing={isProcessing} />
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <AudioUpload onTranscriptReady={handleTranscriptUpload} isProcessing={isProcessing} />
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  {/* Compact menu for upload options */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem asChild>
+                        <TranscriptUpload onUpload={handleTranscriptUpload} isProcessing={isProcessing} />
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <AudioUpload onTranscriptReady={handleTranscriptUpload} isProcessing={isProcessing} />
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {isRecording && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-success animate-pulse' : 'bg-muted-foreground'}`} />
+                      <span>{connectionStatus === 'connected' ? 'Connected' : 'Connecting...'}</span>
                     </div>
-
-                    {isRecording && (
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-success animate-pulse' : 'bg-muted-foreground'}`} />
-                          <span>{connectionStatus === 'connected' ? 'Connected' : 'Connecting...'}</span>
-                        </div>
-                        {speechRate !== null && (
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{speechRate.toFixed(1)} wpm</span>
-                          </div>
-                        )}
+                    {speechRate !== null && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{speechRate.toFixed(1)} wpm</span>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
 
                 {/* Voice AI Panel - Active when recording */}
