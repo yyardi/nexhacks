@@ -28,70 +28,33 @@ interface UseOvershotVisionReturn {
   resetSession: () => void;
 }
 
-const OVERSHOOT_PROMPT = `
-You are a clinical biometric analysis system observing a patient in real-time.
+const OVERSHOOT_PROMPT = `Analyze the person's face and body language. Provide measurements:
 
-Analyze the person's facial expressions, eye movements, breathing patterns, and physical indicators.
+emotion: ONE WORD (e.g., neutral, calm, anxious, sad, happy, stressed)
+behavior: Observable behavior (e.g., "Still", "Fidgeting", "Gesturing")
+engagement: Description (e.g., "Focused", "Distracted", "Engaged")
+distress_signal: Only if visible distress, otherwise null
+eye_contact: Percentage 0-100 of eye contact with camera
+gaze_stability: Percentage 0-100 of gaze steadiness
+breathing_rate: Breaths per minute (12-20 normal)
+blink_rate: Blinks per minute (15-20 normal)
+engagement_level: Percentage 0-100 of overall engagement`;
 
-Output JSON with precise measurements:
-{
-  "emotion": string | null,
-  "behavior": string | null,
-  "engagement": string | null,
-  "distress_signal": string | null,
-  "eye_contact": number | null,
-  "gaze_stability": number | null,
-  "breathing_rate": number | null,
-  "blink_rate": number | null,
-  "engagement_level": number | null
-}
-
-MEASUREMENT GUIDELINES:
-
-emotion: ONE WORD describing facial emotion (e.g., "neutral", "calm", "anxious", "sad", "happy", "distressed", "fearful")
-
-behavior: Observable physical behavior (e.g., "Still posture", "Fidgeting", "Hand gestures", "Head movement")
-
-engagement: Descriptive engagement quality (e.g., "Focused", "Distracted", "Engaged", "Withdrawn")
-
-distress_signal: ONLY if clear distress visible (e.g., "Crying", "Head in hands", "Visible trembling", null otherwise)
-
-eye_contact: Percentage (0-100) of time making direct eye contact with camera
-- 80-100: Strong consistent eye contact
-- 50-80: Moderate eye contact
-- 20-50: Intermittent eye contact
-- 0-20: Avoiding eye contact
-
-gaze_stability: Percentage (0-100) measuring how stable/steady their gaze is
-- 80-100: Very stable, focused gaze
-- 50-80: Mostly stable with some movement
-- 20-50: Frequent eye movements, scanning
-- 0-20: Rapid, unstable eye movements
-
-breathing_rate: Estimated breaths per minute (typical range: 12-20)
-- Watch for chest/shoulder movement
-- Normal: 12-18 breaths/min
-- Fast/anxious: 20+ breaths/min
-- Slow/calm: <12 breaths/min
-
-blink_rate: Estimated blinks per minute (typical range: 15-20)
-- Normal: 15-20 blinks/min
-- Anxious/stressed: 25+ blinks/min
-- Focused/calm: <15 blinks/min
-
-engagement_level: Overall engagement percentage (0-100)
-- 80-100: Highly engaged, attentive, responsive
-- 50-80: Moderately engaged
-- 20-50: Low engagement, distracted
-- 0-20: Disengaged, withdrawn
-
-CRITICAL RULES:
-- Base measurements on VISIBLE indicators only
-- If you cannot reliably measure something, use null
-- Be precise with numerical values
-- No diagnoses or psychological interpretations
-- Focus on objective physical observations
-`;
+const OUTPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    emotion: { type: ['string', 'null'] },
+    behavior: { type: ['string', 'null'] },
+    engagement: { type: ['string', 'null'] },
+    distress_signal: { type: ['string', 'null'] },
+    eye_contact: { type: ['number', 'null'] },
+    gaze_stability: { type: ['number', 'null'] },
+    breathing_rate: { type: ['number', 'null'] },
+    blink_rate: { type: ['number', 'null'] },
+    engagement_level: { type: ['number', 'null'] }
+  },
+  required: ['emotion', 'behavior', 'engagement', 'distress_signal', 'eye_contact', 'gaze_stability', 'breathing_rate', 'blink_rate', 'engagement_level']
+};
 
 export function useOvershotVision({
   apiKey,
@@ -108,11 +71,22 @@ export function useOvershotVision({
 
   const handleResult = useCallback((result: any) => {
     try {
+      console.log('[Overshoot] Raw result received:', result);
+
+      // Check if result is ok
+      if (!result.ok) {
+        console.error('[Overshoot] Result error:', result.error);
+        setError(result.error || 'Inference failed');
+        return;
+      }
+
       // Parse the result
       const observation: VisualObservation = {
         timestamp: Date.now(),
         ...JSON.parse(result.result)
       };
+
+      console.log('[Overshoot] Parsed observation:', observation);
 
       // Update latency metrics
       setLatency({
@@ -131,6 +105,7 @@ export function useOvershotVision({
       // Check if observation is novel (Milestone 2: Temporal Memory)
       if (isNovelObservation(observation)) {
         // This is a new emotional state - forward it
+        console.log('[Overshoot] Novel observation detected');
         if (onNovelObservation) {
           onNovelObservation(observation);
         }
@@ -141,7 +116,7 @@ export function useOvershotVision({
         pruneMemory();
       }
     } catch (err) {
-      console.error('Failed to parse Overshoot result:', err);
+      console.error('[Overshoot] Failed to parse result:', err, 'Raw result:', result);
       setError('Failed to parse visual observation');
     }
   }, [onNovelObservation, onRawObservation]);
@@ -149,21 +124,29 @@ export function useOvershotVision({
   const startVision = useCallback(async () => {
     try {
       setError(null);
+      console.log('[Overshoot] Starting vision with API key:', apiKey ? 'Present' : 'MISSING');
+
+      if (!apiKey) {
+        throw new Error('VITE_OVERSHOOT_API_KEY not found in environment');
+      }
 
       // Initialize Overshoot RealtimeVision
+      console.log('[Overshoot] Initializing RealtimeVision...');
       const vision = new RealtimeVision({
-        apiUrl: 'https://cluster1.overshoot.ai/api/v0.2',
+        apiUrl: 'https://api.overshoot.ai',
         apiKey,
         backend: 'overshoot',
         model: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
+        debug: true,
 
         prompt: OVERSHOOT_PROMPT,
+        outputSchema: OUTPUT_SCHEMA,
 
         processing: {
-          sampling_ratio: 0.3,          // 30% sampling for high-quality biometric analysis
-          fps: 30,                      // 30 FPS for smooth capture
-          clip_length_seconds: 2,       // 2-second clips for faster results
-          delay_seconds: 0.5            // Update every 0.5 seconds for real-time feel
+          sampling_ratio: 0.2,
+          fps: 30,
+          clip_length_seconds: 1,
+          delay_seconds: 1
         },
 
         source: {
@@ -171,15 +154,28 @@ export function useOvershotVision({
           cameraFacing
         },
 
-        onResult: handleResult
+        onResult: handleResult,
+        onError: (err: Error) => {
+          console.error('[Overshoot] Error callback:', err);
+          console.error('[Overshoot] Error name:', err.name);
+          console.error('[Overshoot] Error message:', err.message);
+          setError(err.message || 'Unknown error occurred');
+        }
       });
 
       visionRef.current = vision;
 
+      console.log('[Overshoot] Starting vision.start()...');
       await vision.start();
+      console.log('[Overshoot] Vision started successfully!');
       setIsActive(true);
     } catch (err: any) {
-      console.error('Failed to start Overshoot vision:', err);
+      console.error('[Overshoot] Failed to start vision:', err);
+      console.error('[Overshoot] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
       setError(err.message || 'Failed to start visual observation');
       setIsActive(false);
     }
