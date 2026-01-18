@@ -60,22 +60,98 @@ class CrisisSignal:
 
 CRISIS_KEYWORDS = {
     "suicide": {
-        "high": ["kill myself", "end my life", "suicide", "don't want to live", "better off dead", "no reason to live"],
-        "moderate": ["wish I wasn't here", "tired of living", "can't go on", "hopeless", "no point"],
+        "high": [
+            # Direct intent
+            "kill myself", "end my life", "commit suicide", "suicide",
+            "going to die", "i want to die", "i plan to die",
+            "i'm done with life", "i can't live anymore",
+
+            # Passive death wish (high risk)
+            "better off dead", "everyone would be better without me",
+            "no reason to live", "life isn't worth it",
+            "i shouldn't exist", "i don't want to exist",
+
+            # Temporal / imminent framing
+            "tonight", "today is the day", "this is the end"
+        ],
+        "moderate": [
+            # Indirect / ideation
+            "wish i wasn't here", "tired of living", "can't go on",
+            "i'm exhausted with life", "hopeless", "no point anymore",
+            "what's the point of living", "i'm done trying",
+
+            # Existential despair
+            "nothing matters", "i feel empty", "i feel dead inside",
+            "i don't see a future", "i've given up"
+        ],
     },
+
     "self_harm": {
-        "high": ["cut myself", "hurt myself", "burning myself", "hitting myself"],
-        "moderate": ["want to feel pain", "punish myself", "deserve to suffer"],
+        "high": [
+            # Direct acts
+            "cut myself", "cutting myself", "hurt myself",
+            "burn myself", "burning myself", "hitting myself",
+            "scratching myself", "injure myself",
+
+            # Compulsion / urges
+            "i need to hurt myself", "i want to bleed",
+            "i deserve pain", "i can't stop hurting myself"
+        ],
+        "moderate": [
+            # Indirect urges
+            "want to feel pain", "punish myself",
+            "i deserve to suffer", "i hate myself",
+
+            # Emotional precursors
+            "overwhelming guilt", "self disgust",
+            "i need relief somehow"
+        ],
     },
+
     "violence": {
-        "high": ["kill someone", "hurt them", "want to attack", "make them pay"],
-        "moderate": ["so angry", "want to hit", "violent thoughts"],
+        "high": [
+            # Explicit harm to others
+            "kill someone", "hurt someone", "attack them",
+            "make them pay", "i want to hurt them",
+            "i'm going to hurt someone",
+
+            # Loss of control
+            "i might snap", "i can't control myself"
+        ],
+        "moderate": [
+            # Aggressive ideation
+            "so angry", "filled with rage", "want to hit",
+            "violent thoughts", "i feel dangerous",
+
+            # Dehumanization / resentment
+            "they deserve it", "i hate everyone",
+            "i want revenge"
+        ],
     },
+
     "psychosis": {
-        "high": ["they're watching me", "voices telling me", "poison", "conspiracy against me"],
-        "moderate": ["things aren't real", "seeing things", "hearing things"],
+        "high": [
+            # Paranoia / delusions
+            "they're watching me", "someone is spying on me",
+            "conspiracy against me", "they want to poison me",
+            "nothing is real", "i'm being controlled",
+
+            # Command hallucinations
+            "voices telling me to", "they told me to do it",
+            "the voices won't stop"
+        ],
+        "moderate": [
+            # Perceptual disturbances
+            "seeing things", "hearing things",
+            "things aren't real", "feels unreal",
+            "i feel detached from reality",
+
+            # Disorganized thinking
+            "my thoughts aren't mine", "my mind is broken"
+        ],
     },
 }
+
 
 
 def detect_crisis_signals(text: str) -> list[CrisisSignal]:
