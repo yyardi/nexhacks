@@ -12,6 +12,7 @@ import Privacy from "./pages/Privacy";
 import Dashboard from "./pages/Dashboard";
 import Sessions from "./pages/Sessions";
 import SessionDetail from "./pages/SessionDetail";
+import RealtimeCompanion from "./pages/RealtimeCompanion";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/session/:id" element={<SessionDetail />} />
+            <Route path="/realtime" element={<RealtimeCompanion />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
