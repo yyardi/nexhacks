@@ -89,6 +89,8 @@ export const useSessionPersistence = () => {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) throw new Error("Not authenticated");
 
+    input.onProgress?.(10, "Preparing session data...");
+
     const sessionId = crypto.randomUUID();
     const patientId = await createOrFindPatientId(input.patientName);
 
