@@ -973,7 +973,8 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Right: Video + Biometrics */}
+              {/* Right: Video + Biometrics - Hidden in patient mode */}
+              {mode === 'doctor' && (
               <div className="flex flex-col gap-4">
                 <div className="relative">
                   <VideoCapture videoRef={videoRef} isRecording={isRecording} onStream={handleVideoStream} />
@@ -1084,8 +1085,10 @@ const Dashboard = () => {
               isRecording={isRecording}
             />
           </div>
+          )}
 
-          {/* Right: Analysis Tabs */}
+          {/* Right: Analysis Tabs - Hidden in patient mode */}
+          {mode === 'doctor' && (
           <Tabs defaultValue="assessment" className="space-y-4">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="vision"><Eye className="h-4 w-4 mr-1" />Vision</TabsTrigger>
@@ -1288,6 +1291,7 @@ const Dashboard = () => {
               </Card>
             </TabsContent>
           </Tabs>
+          )}
         </div>
       </div>
     </div>
