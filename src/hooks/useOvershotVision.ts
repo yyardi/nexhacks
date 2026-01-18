@@ -38,11 +38,11 @@ EMOTION & AFFECT:
 - arousal_level: Energy level 0-100 (0=low energy, 100=high energy)
 - micro_expressions: Brief involuntary expressions if visible, otherwise null
 
-EYE BEHAVIOR:
+EYE BEHAVIOR (observe carefully for rapid movements):
 - eye_contact: Direct eye contact percentage 0-100
 - gaze_direction: Where looking (camera/away/down/up/left/right)
 - gaze_stability: Steadiness 0-100 (0=darting, 100=steady)
-- blink_rate: Blinks per minute (normal 15-20, anxiety >25)
+- blink_rate: Count ALL blinks per minute precisely, even rapid blinks (normal 15-20, anxiety >25, include partial blinks)
 - eye_widening: Eye openness 0-100 (0=narrow, 50=normal, 100=wide)
 - pupil_response: Pupil size change (dilated/normal/constricted)
 
@@ -217,7 +217,7 @@ export function useOvershotVision({
         outputSchema: OUTPUT_SCHEMA,
 
         processing: {
-          sampling_ratio: 0.1,
+          sampling_ratio: 0.15,  // Increased from 0.1 to better capture rapid blinks
           fps: 30,
           clip_length_seconds: 1,
           delay_seconds: 1
