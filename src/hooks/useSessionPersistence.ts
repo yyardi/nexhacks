@@ -17,6 +17,7 @@ type SaveSessionInput = {
   endedAt: number;
   audioBlob: Blob | null;
   videoBlob: Blob | null;
+  onProgress?: (progress: number, status: string) => void;
 };
 
 function computeEmotionSummary(biometrics: BiometricSnapshot[]) {
@@ -88,6 +89,8 @@ export const useSessionPersistence = () => {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) throw new Error("Not authenticated");
 
+    input.onProgress?.(10, "Preparing session data...");
+
     const sessionId = crypto.randomUUID();
     const patientId = await createOrFindPatientId(input.patientName);
 
@@ -113,12 +116,26 @@ export const useSessionPersistence = () => {
     let audioPath: string | null = null;
     let videoPath: string | null = null;
 
+    // Upload audio
     if (input.audioBlob && input.audioBlob.size > 0) {
+      input.onProgress?.(20, "Uploading audio recording...");
       audioPath = await uploadRecording({ sessionId, kind: "audio", blob: input.audioBlob });
+      input.onProgress?.(40, "Audio uploaded successfully");
+    } else {
+      input.onProgress?.(40, "No audio to upload");
     }
+
+    // Upload video
     if (input.videoBlob && input.videoBlob.size > 0) {
+      input.onProgress?.(50, "Uploading video recording...");
       videoPath = await uploadRecording({ sessionId, kind: "video", blob: input.videoBlob });
+      input.onProgress?.(80, "Video uploaded successfully");
+    } else {
+      input.onProgress?.(80, "No video to upload");
     }
+
+    // Save to database
+    input.onProgress?.(85, "Saving session data and transcript...");
 
     const { error: insertError } = await supabase.from("sessions").insert({
       id: sessionId,
@@ -142,6 +159,8 @@ export const useSessionPersistence = () => {
     });
 
     if (insertError) throw insertError;
+
+    input.onProgress?.(100, "Session saved successfully!");
 
     return { sessionId };
   }, []);

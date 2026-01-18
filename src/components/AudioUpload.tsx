@@ -106,6 +106,7 @@ export const AudioUpload = ({ onTranscriptReady, isProcessing }: AudioUploadProp
         size="sm"
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading || isProcessing}
+        className="w-full justify-start"
       >
         {isUploading ? (
           <>

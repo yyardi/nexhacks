@@ -69,8 +69,8 @@ export const TranscriptUpload = ({ onUpload, isProcessing }: TranscriptUploadPro
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="lg" className="gap-2">
-          <Upload className="h-5 w-5" />
+        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+          <Upload className="h-4 w-4" />
           Upload Transcript
         </Button>
       </DialogTrigger>
