@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, Shield, AlertTriangle, FileText, Mic, MicOff, Clock, Pill, LogOut, FolderOpen, Search, Heart, MoreHorizontal, Eye, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,9 @@ import { useTimelineAnalysis } from '@/hooks/useTimelineAnalysis';
 import { useSmartQA } from '@/hooks/useSmartQA';
 import { useInterviewOrchestrator } from '@/hooks/useInterviewOrchestrator';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
+
+// Lazy load LiveKit component to avoid issues if not used
+const LiveKitVoicePanel = lazy(() => import('@/components/LiveKitVoicePanel').then(m => ({ default: m.LiveKitVoicePanel })));
 import { useOvershotVision } from '@/hooks/useOvershotVision';
 import { VisualObservation } from '@/types/overshoot';
 import { BiometricTimeline } from '@/components/BiometricTimeline';
@@ -83,6 +86,9 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [speechRate, setSpeechRate] = useState<number | null>(null);
   const [longPauses, setLongPauses] = useState<number>(0);
+
+  // Voice AI connection status (LiveKit)
+  const [voiceAIConnected, setVoiceAIConnected] = useState(false);
 
   // Overshoot visual emotion observation
   const [visualObservations, setVisualObservations] = useState<VisualObservation[]>([]);
@@ -303,6 +309,41 @@ const Dashboard = () => {
     await performAnalysis(transcriptText);
   };
 
+  // Handle voice AI transcript from LiveKit
+  const handleVoiceAITranscript = useCallback((text: string, speaker: 'user' | 'agent') => {
+    const mappedSpeaker = speaker === 'user' ? 'patient' : 'clinician';
+    timeline.addTranscript(text, mappedSpeaker as 'clinician' | 'patient', { rawText: text });
+    accumulatedTextRef.current += (accumulatedTextRef.current ? ' ' : '') + text;
+
+    // Trigger analysis periodically
+    const now = Date.now();
+    if (now - lastAnalysisTimeRef.current >= 15000 && accumulatedTextRef.current.length > 50) {
+      performAnalysis(accumulatedTextRef.current);
+    }
+  }, [timeline]);
+
+  // Handle crisis alerts from voice AI
+  const handleVoiceAICrisisAlert = useCallback((alert: any) => {
+    // Map to our safety assessment format
+    const riskLevel = alert.risk_level === 'imminent' ? 'Imminent'
+      : alert.risk_level === 'high' ? 'High'
+      : alert.risk_level === 'moderate' ? 'Moderate' : 'Low';
+
+    setSafetyAssessment(prev => ({
+      suicide_risk_level: riskLevel as any,
+      risk_factors: prev?.risk_factors || [],
+      protective_factors: prev?.protective_factors || [],
+      immediate_actions: [alert.recommended_action],
+      recommended_action: alert.recommended_action,
+    }));
+
+    toast({
+      variant: "destructive",
+      title: `⚠️ ${riskLevel} Risk Alert`,
+      description: `${alert.category}: ${alert.reason}`,
+    });
+  }, [toast]);
+
   const classifySpeakerHeuristic = useCallback((text: string): 'clinician' | 'patient' => {
     const t = text.trim();
     const lower = t.toLowerCase();
@@ -331,6 +372,7 @@ const Dashboard = () => {
 
   const startRecording = async () => {
     try {
+      // Initialize a fresh session
       timeline.startNewSession();
       audioChunksRef.current = [];
       videoChunksRef.current = [];
@@ -339,8 +381,16 @@ const Dashboard = () => {
       sessionStartedAtRef.current = Date.now();
       sessionEndedAtRef.current = null;
 
-      // Set recording state early so VideoCapture can request camera.
+      // Clear any previous state
+      accumulatedTextRef.current = '';
+      setDifferential([]);
+      setSafetyAssessment(null);
+      setAssessmentTools([]);
+      setTreatmentPlan(null);
+
+      // Set recording state early so VideoCapture and LiveKit can initialize
       setIsRecording(true);
+      console.log('[Dashboard] Starting AI Companion session with Voice AI + Overshoot');
 
       const backendUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -461,6 +511,10 @@ const Dashboard = () => {
 
   const stopRecording = async () => {
     sessionEndedAtRef.current = Date.now();
+    console.log('[Dashboard] Stopping AI Companion session');
+
+    // Disable Voice AI
+    setVoiceAIConnected(false);
 
     // Stop Overshoot visual emotion detection
     if (overshoot.isActive) {
@@ -730,24 +784,29 @@ const Dashboard = () => {
       </Dialog>
 
       <div className="container mx-auto p-4 md:p-6 space-y-6">
-        {/* Recording Controls - Simplified */}
+        {/* Recording Controls */}
         <Card className="shadow-lg">
           <div className="p-6">
             <div className="flex flex-col lg:flex-row gap-6 items-start">
               {/* Left: Controls */}
               <div className="flex-1 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <Brain className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">Session Recording</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {isRecording ? 'Recording in progress...' : 'Ready to start new session'}
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <Brain className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">Session Recording</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {isRecording
+                          ? 'AI Companion session active'
+                          : 'Ready to start new session'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
+                {/* Session Controls */}
                 <div className="flex items-center gap-3">
                   {!isRecording ? (
                     <Button onClick={startRecording} size="lg" className="gap-2">
@@ -762,28 +821,31 @@ const Dashboard = () => {
                   )}
 
                   {/* Compact menu for upload options */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem asChild>
-                        <TranscriptUpload onUpload={handleTranscriptUpload} isProcessing={isProcessing} />
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <AudioUpload onTranscriptReady={handleTranscriptUpload} isProcessing={isProcessing} />
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {!isRecording && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem asChild>
+                          <TranscriptUpload onUpload={handleTranscriptUpload} isProcessing={isProcessing} />
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <AudioUpload onTranscriptReady={handleTranscriptUpload} isProcessing={isProcessing} />
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
 
+                {/* Session Status */}
                 {isRecording && (
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-success animate-pulse' : 'bg-muted-foreground'}`} />
-                      <span>{connectionStatus === 'connected' ? 'Connected' : 'Connecting...'}</span>
+                      <div className={`w-2 h-2 rounded-full ${voiceAIConnected ? 'bg-success animate-pulse' : 'bg-muted-foreground'}`} />
+                      <span>{voiceAIConnected ? 'Voice AI Connected' : 'Connecting...'}</span>
                     </div>
                     {speechRate !== null && (
                       <div className="flex items-center gap-2">
@@ -792,6 +854,26 @@ const Dashboard = () => {
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* Voice AI Panel - shown when session is active */}
+                {isRecording && (
+                  <Suspense fallback={
+                    <Card className="p-4">
+                      <div className="flex items-center justify-center py-8 gap-2">
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm text-muted-foreground">Loading Voice AI...</span>
+                      </div>
+                    </Card>
+                  }>
+                    <LiveKitVoicePanel
+                      isEnabled={isRecording}
+                      onTranscript={handleVoiceAITranscript}
+                      onCrisisAlert={handleVoiceAICrisisAlert}
+                      onConnectionChange={setVoiceAIConnected}
+                      emotions={biometrics.emotions ? { ...biometrics.emotions } as Record<string, number> : null}
+                    />
+                  </Suspense>
                 )}
               </div>
 

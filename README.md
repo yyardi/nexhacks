@@ -1,102 +1,168 @@
-# Arden - Real-Time AI Mental Health Companion
+# Arden
 
-> A fully autonomous AI companion that sees, listens, and adapts to your emotional state in real-time.
+> Real-time multimodal clinical intelligence for psychiatric assessments, analyzing voice, video, and conversation to surface subtle crisis signals and diagnostic insights instantly.
 
-## 🌟 Overview
+Team: Shrishant Hattarki, Aakash Kolli, Jason Yap, Yash Yardi
 
-Arden is a real-time AI mental health companion built for the Arden Hackathon. It combines cutting-edge technologies to create a compassionate, perceptive AI that provides emotional support through natural conversation.
+---
 
-### Core Technologies
+## Overview
 
-- **LiveKit Agents** - Real-time voice conversation with live transcription
-- **Overshoot RealtimeVision** - Continuous emotional and behavioral perception through camera
-- **Google Gemini** - AI-powered sentiment analysis and conversation intelligence
-- **React + TypeScript** - Modern, responsive web interface
-- **Supabase** - Backend database and edge functions
+Arden is a real-time AI copilot for psychiatric assessment that combines continuous video analysis with voice AI to surface diagnostic signals during clinical interviews. Built entirely during NexHacks (January 17-18, 2026).
 
-## 🚀 Quick Start
+### What It Does
+
+- **Video Analysis**: Extracts 28 biometric measurements in real-time (eye contact, gaze stability, facial tension, posture, breathing patterns, distress signals)
+- **Voice AI**: Conducts empathetic psychiatric interviews with real-time transcription and crisis keyword detection
+- **Multimodal Fusion**: Combines visual and audio signals to adapt AI responses based on observed patient state
+- **Clinical Dashboard**: Live biometric timeline, differential diagnosis suggestions, and crisis alerts with recommended actions
+- **Session Reports**: AI-generated clinical documentation with DSM-5 codes and treatment recommendations
+
+---
+
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- Supabase account
-- Google Gemini API key (for sentiment analysis)
-- LiveKit account (for Arden features)
-- Overshoot API key (for Arden features)
+- Python 3.11+ (for LiveKit agent)
+- API keys for: Supabase, LiveKit, Overshoot, Gemini
 
 ### Installation
 
 ```bash
-# Install dependencies
+# Install frontend dependencies
 npm install
 
-# Copy environment template
+# Copy environment template for frontend
 cp .env.example .env
 
-# Edit .env with your API keys
-# See SETUP.md for detailed instructions
+# Edit .env with your API keys (see SETUP.md)
 
 # Run development server
 npm run dev
 ```
 
-Visit **[http://localhost:8080](http://localhost:8080)** to see the app.
+Visit **http://localhost:8080**
 
-## 📖 Full Setup Instructions
+### Running the Voice Agent
 
-For complete setup instructions including:
-- Supabase project creation
-- Database migrations
-- Edge function deployment
-- API key configuration
-- Deployment guides
+```bash
+cd arden-agent
+pip install -r requirements.txt
 
-**See [SETUP.md](./SETUP.md)** for the comprehensive guide.
+# Create .env.local for agent credentials
+cp .env.example .env.local
 
-## 🎯 Arden Hackathon Spec
+# Edit .env.local with LiveKit credentials
+python src/agent.py dev
+```
 
-This project implements the real-time AI mental health companion with:
+See [SETUP.md](./SETUP.md) for complete setup instructions.
 
-### ✅ Milestone 1: Emotional & Behavioral Visual Observer
-- Overshoot RealtimeVision integration
-- Real-time facial expression detection
-- Posture and engagement monitoring
-- Temporal emotion memory
+---
 
-### ✅ Milestone 2: Patient-Facing AI Companion
-- LiveKit audio capture and transcription
-- AI-generated spoken responses
-- Live transcript display
-- Natural conversation flow
-
-### ✅ Milestone 3: Emotional Adaptation
-- Camera-based emotion detection
-- Adaptive AI responses based on visual cues
-- Tone, pacing, and content modulation
-
-### ✅ Milestone 4: Distress & Safety Response
-- Visual distress signal detection
-- Calm, supportive safety responses
-- Grounding conversation techniques
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
-nexhacks/
-├── src/                    # React frontend
-│   ├── pages/             # Route components
-│   ├── components/        # UI components
-│   ├── hooks/             # Custom React hooks
-│   └── integrations/      # Supabase setup
+arden/
+├── src/                      # React frontend
+│   ├── pages/               # Route components
+│   ├── components/          # UI components
+│   ├── hooks/               # Custom React hooks (useOvershotVision, etc.)
+│   ├── lib/                 # Utilities (crisis-detection, livekit-token)
+│   ├── types/               # TypeScript definitions
+│   └── integrations/        # Supabase client
+├── arden-agent/             # LiveKit voice agent (Python)
+│   └── src/agent.py         # PsychiatricAssistant agent
 ├── supabase/
-│   ├── functions/         # Edge Functions (AI logic)
-│   └── migrations/        # Database schema
-├── .env.example           # Environment template
-├── SETUP.md              # Complete setup guide
-└── package.json          # Dependencies
+│   └── functions/           # Edge Functions (session insights)
+├── .env.example             # Environment template
+├── SETUP.md                 # Complete setup guide
+└── package.json
 ```
 
-## 🔧 Available Scripts
+---
+
+## External Tools & Libraries (Credits)
+
+### Frontend Framework & UI
+
+| Library | Version | Purpose | License |
+|---------|---------|---------|---------|
+| [React](https://react.dev/) | 18.3.1 | UI framework | MIT |
+| [TypeScript](https://www.typescriptlang.org/) | 5.6.3 | Type safety | Apache-2.0 |
+| [Vite](https://vitejs.dev/) | 5.4.11 | Build tool | MIT |
+| [Tailwind CSS](https://tailwindcss.com/) | 3.4.17 | Styling | MIT |
+| [Radix UI](https://www.radix-ui.com/) | various | Accessible components | MIT |
+| [React Router](https://reactrouter.com/) | 6.28.0 | Routing | MIT |
+| [React Query](https://tanstack.com/query) | 5.60.6 | Data fetching | MIT |
+| [React Hook Form](https://react-hook-form.com/) | 7.53.2 | Form management | MIT |
+| [Recharts](https://recharts.org/) | 2.15.0 | Data visualization | MIT |
+| [Lucide React](https://lucide.dev/) | 0.468.0 | Icons | ISC |
+| [date-fns](https://date-fns.org/) | 4.1.0 | Date utilities | MIT |
+| [Zod](https://zod.dev/) | 3.23.8 | Schema validation | MIT |
+| [clsx](https://github.com/lukeed/clsx) | 2.1.1 | Class utilities | MIT |
+| [tailwind-merge](https://github.com/dcastil/tailwind-merge) | 2.5.5 | Tailwind utilities | MIT |
+| [class-variance-authority](https://cva.style/) | 0.7.1 | Component variants | Apache-2.0 |
+| [cmdk](https://cmdk.paco.me/) | 1.0.0 | Command menu | MIT |
+| [Sonner](https://sonner.emilkowal.ski/) | 1.7.1 | Toast notifications | MIT |
+| [uuid](https://github.com/uuidjs/uuid) | 11.0.3 | UUID generation | MIT |
+
+### Real-Time Communication (LiveKit)
+
+| Library | Version | Purpose | License |
+|---------|---------|---------|---------|
+| [@livekit/components-react](https://docs.livekit.io/) | 2.9.19 | LiveKit React components | Apache-2.0 |
+| [@livekit/components-styles](https://docs.livekit.io/) | 1.1.5 | LiveKit styles | Apache-2.0 |
+| [livekit-client](https://docs.livekit.io/) | 2.17.0 | LiveKit client SDK | Apache-2.0 |
+| [livekit-server-sdk](https://docs.livekit.io/) | 2.9.1 | LiveKit server SDK | Apache-2.0 |
+
+### Computer Vision (Overshoot)
+
+| Library | Version | Purpose | License |
+|---------|---------|---------|---------|
+| [@overshoot/sdk](https://docs.overshoot.ai/) | 0.1.0-alpha.2 | Real-time vision API | Proprietary |
+
+### Backend & Database
+
+| Service/Library | Purpose | License |
+|-----------------|---------|---------|
+| [Supabase](https://supabase.com/) | Database, Auth, Edge Functions | Apache-2.0 |
+| [@supabase/supabase-js](https://github.com/supabase/supabase-js) | Supabase client | MIT |
+| [Deno](https://deno.land/) | Edge Functions runtime | MIT |
+
+### AI Models & APIs
+
+| Service | Purpose | Provider |
+|---------|---------|----------|
+| [Gemini 2.0-Flash-Exp](https://ai.google.dev/) | Session insights generation | Google |
+| [OpenAI GPT-4.1-mini](https://openai.com/) | Voice agent LLM (via LiveKit) | OpenAI |
+| [AssemblyAI Universal](https://www.assemblyai.com/) | Speech-to-text (via LiveKit) | AssemblyAI |
+| [Cartesia Sonic-3](https://cartesia.ai/) | Text-to-speech (via LiveKit) | Cartesia |
+| [Qwen3-VL-30B-A3B-Instruct](https://huggingface.co/Qwen) | Vision model (via Overshoot) | Alibaba/Qwen |
+
+### Python Agent Dependencies
+
+| Library | Purpose | License |
+|---------|---------|---------|
+| [livekit-agents](https://docs.livekit.io/agents/) | Agent framework | Apache-2.0 |
+| [livekit-plugins-silero](https://docs.livekit.io/) | Voice activity detection | Apache-2.0 |
+| [livekit-plugins-noise-cancellation](https://docs.livekit.io/) | Audio processing | Apache-2.0 |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | Environment management | BSD-3 |
+
+### Development Tools
+
+| Tool | Purpose | License |
+|------|---------|---------|
+| [ESLint](https://eslint.org/) | Linting | MIT |
+| [PostCSS](https://postcss.org/) | CSS processing | MIT |
+| [Autoprefixer](https://github.com/postcss/autoprefixer) | CSS vendor prefixes | MIT |
+| [Claude Code](https://claude.ai/claude-code) | AI-assisted development | Anthropic |
+
+---
+
+## Available Scripts
 
 ```bash
 npm run dev          # Start development server
@@ -105,98 +171,44 @@ npm run preview      # Preview production build
 npm run lint         # Run ESLint
 ```
 
-## 🌐 Deployment
+---
 
-Deploy to Vercel, Netlify, or any static hosting service:
+## Environment Variables
 
-```bash
-# Build
-npm run build
-
-# Deploy (example with Vercel)
-vercel --prod
-```
-
-See [SETUP.md](./SETUP.md#deploying-to-production) for deployment guides.
-
-## 🔑 Environment Variables
-
-### Frontend `.env` file (Public keys only):
+### Frontend `.env` (in root `/arden` folder)
 
 ```env
-# Supabase - ONLY public keys in frontend
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+VITE_LIVEKIT_URL=wss://your-project.livekit.cloud
+VITE_LIVEKIT_API_KEY=your-api-key
+VITE_LIVEKIT_API_SECRET=your-api-secret
+VITE_OVERSHOOT_API_KEY=your-overshoot-key
 ```
 
-### Supabase Secrets (Private API keys):
+### Voice Agent `.env.local` (in `/arden-agent` folder)
 
-All private API keys must be set as Supabase secrets:
+```env
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your-api-key
+LIVEKIT_API_SECRET=your-api-secret
+```
+
+### Supabase Secrets
 
 ```bash
 supabase secrets set GEMINI_API_KEY=your-key
-supabase secrets set LIVEKIT_API_KEY=your-key
-supabase secrets set LIVEKIT_API_SECRET=your-secret
-supabase secrets set OVERSHOOT_API_KEY=your-key
 ```
-
-**⚠️ NEVER put private API keys in your `.env` file - they will be exposed in the browser!**
-
-See [SETUP.md](./SETUP.md) for detailed instructions.
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **Radix UI** - Accessible components
-- **React Query** - Data fetching
-- **React Hook Form** - Form management
-
-### Backend
-- **Supabase** - Database & Auth
-- **Deno** - Edge Functions runtime
-- **Google Gemini** - AI sentiment analysis & conversations
-- **LiveKit** - Real-time communication
-- **Overshoot** - Computer vision
-
-## 📝 Features
-
-### Current Features
-- ✅ User authentication
-- ✅ Session management
-- ✅ Real-time transcription
-- ✅ AI-powered psychiatric analysis
-- ✅ Biometric tracking
-- ✅ Session insights and reports
-
-### Arden Features (To Implement)
-- 🚧 LiveKit voice conversation
-- 🚧 Overshoot emotional perception
-- 🚧 Real-time emotional adaptation
-- 🚧 Distress detection and response
-- 🚧 End-to-end latency optimization
-
-## 🤝 Contributing
-
-This is a hackathon project. Contributions are welcome!
-
-## 📄 License
-
-MIT License - feel free to use this project as you wish.
-
-## 🙏 Acknowledgments
-
-- **Arden Hackathon** - For the amazing challenge
-- **LiveKit** - Real-time infrastructure
-- **Overshoot** - Computer vision technology
-- **Supabase** - Backend platform
-- **Google Gemini** - AI models
 
 ---
 
-**Built with ❤️ for the Arden Hackathon**
+## Acknowledgments
 
-For questions or issues, please refer to [SETUP.md](./SETUP.md) or create an issue.
+- **NexHacks** - Hackathon organizers
+- **Overshoot** - Real-time vision API and sponsor
+- **LiveKit** - Real-time voice infrastructure and sponsor
+- **Supabase** - Backend platform
+- **Google** - Gemini AI models
+- **OpenAI** - GPT models
+- **AssemblyAI** - Speech recognition
+- **Cartesia** - Text-to-speech
