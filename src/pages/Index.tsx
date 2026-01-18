@@ -158,7 +158,7 @@ export default function Index() {
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <img src="/arden-icon.svg" alt="Arden" className="h-6 w-6" />
+              <img src="/arden-logo.png" alt="Arden" className="h-6" />
               <div className="text-xl font-bold text-[#003D6B] dark:text-blue-400">Arden</div>
             </div>
             <span className="text-sm text-gray-600 dark:text-gray-400">

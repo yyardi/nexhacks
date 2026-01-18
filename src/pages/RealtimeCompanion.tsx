@@ -117,7 +117,7 @@ export default function RealtimeCompanion() {
       <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/arden-icon.svg" alt="Arden" className="h-10 w-10" />
+            <img src="/arden-logo.png" alt="Arden" className="h-10" />
             <div>
               <h1 className="text-2xl font-bold text-[#003D6B]">Arden</h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">Real-Time AI Companion</p>

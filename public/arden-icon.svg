@@ -1,6 +1,0 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Modern, minimalist mental health icon -->
-  <circle cx="32" cy="32" r="30" stroke="#003D6B" stroke-width="3" fill="none"/>
-  <circle cx="32" cy="28" r="8" fill="#003D6B"/>
-  <path d="M 20 45 Q 32 38 44 45" stroke="#003D6B" stroke-width="3" stroke-linecap="round" fill="none"/>
-</svg>
