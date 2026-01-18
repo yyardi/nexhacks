@@ -17,6 +17,7 @@ type SaveSessionInput = {
   endedAt: number;
   audioBlob: Blob | null;
   videoBlob: Blob | null;
+  crisisKeywords?: any[];
 };
 
 function computeEmotionSummary(biometrics: BiometricSnapshot[]) {
@@ -128,7 +129,10 @@ export const useSessionPersistence = () => {
       chief_complaint: input.chiefComplaint?.trim() || null,
       full_transcript: input.transcript || null,
       differential_diagnosis: input.differential || null,
-      safety_assessment: input.safetyAssessment || null,
+      safety_assessment: {
+        ...input.safetyAssessment,
+        crisis_keywords: input.crisisKeywords || [],
+      } || null,
       assessment_tools_recommended: (input.assessmentTools || []).map((t: any) => t.tool).filter(Boolean) || null,
       critical_questions: input.questions.map((q) => q.question) || null,
       questions_answers: answered as any,
