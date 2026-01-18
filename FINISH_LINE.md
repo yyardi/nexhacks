@@ -23,9 +23,14 @@
    - @livekit/components-react ✅
    - Build error fixed ✅
 
+4. ✅ **LiveKit Agent Created**
+   - agent.py file created ✅
+   - Python packages installed ✅
+   - Ready to run ✅
+
 ---
 
-## 🚨 MISSING (DO NOW)
+## 🚨 MISSING (DO NOW - ONLY 2 STEPS LEFT)
 
 ### 1. Add LiveKit URL to .env
 **What:** You need your LiveKit Cloud WebSocket URL
@@ -43,53 +48,21 @@ echo 'VITE_LIVEKIT_URL=wss://YOUR-PROJECT.livekit.cloud' >> .env
 
 ---
 
-### 2. Install Overshoot SDK
+### 2. Run LiveKit Agent (Python)
+
+**What:** Start the voice AI server (already created at `agent.py`)
+
+**Run this:**
 ```bash
-npm install @overshoot/sdk
+python agent.py dev
 ```
 
----
+**Keep it running** in a separate terminal while testing.
 
-### 3. Deploy LiveKit Agent (Python)
-
-**What:** Python server that handles voice conversation
-
-**Create file:** `agent.py`
-```python
-from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli, llm
-from livekit.agents.voice_assistant import VoiceAssistant
-from livekit.plugins import openai, cartesia
-
-async def entrypoint(ctx: JobContext):
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-
-    assistant = VoiceAssistant(
-        vad=ctx.room.create_silence_detector(),
-        stt=openai.STT(model="deepgram/nova-2-medical"),
-        llm=openai.LLM(model="gpt-4o"),
-        tts=cartesia.TTS(),
-        chat_ctx=llm.ChatContext().append(
-            text="""You are a calm, supportive AI mental health companion.
-
-Rules:
-- Use simple, empathetic language
-- Ask one question at a time
-- Never diagnose or give medical advice
-- Encourage reflection and grounding
-- If distress escalates, slow down and focus on safety"""
-        )
-    )
-
-    assistant.start(ctx.room)
-    await asyncio.sleep(1)
-
-if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
-```
-
-**Run it:**
+**Note:** You need OpenAI API key and Cartesia API key as environment variables:
 ```bash
-pip install livekit-agents livekit-plugins-openai livekit-plugins-cartesia
+export OPENAI_API_KEY=your-key-here
+export CARTESIA_API_KEY=your-key-here
 python agent.py dev
 ```
 
@@ -118,10 +91,12 @@ After the 3 steps above:
 
 ## 📝 QUICK CHECKLIST
 
-- [ ] Add `VITE_LIVEKIT_URL` to `.env`
-- [ ] Run `npm install @overshoot/sdk`
-- [ ] Deploy Python LiveKit agent
-- [ ] Test: `npm run dev` → Voice AI mode → Hear AI speak
+- [ ] Get LiveKit Cloud account at https://cloud.livekit.io
+- [ ] Add `VITE_LIVEKIT_URL=wss://xxx.livekit.cloud` to `.env`
+- [ ] Set `OPENAI_API_KEY` and `CARTESIA_API_KEY` environment variables
+- [ ] Run `python agent.py dev` in one terminal
+- [ ] Run `npm run dev` in another terminal
+- [ ] Test Voice AI mode in Dashboard
 - [ ] ✅ MVP DONE
 
 ---
