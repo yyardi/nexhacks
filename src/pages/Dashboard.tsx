@@ -88,7 +88,8 @@ const Dashboard = () => {
   const [speechRate, setSpeechRate] = useState<number | null>(null);
   const [longPauses, setLongPauses] = useState<number>(0);
 
-  // Voice AI (LiveKit) - always enabled when recording
+  // Voice AI (LiveKit) - enabled together with recording
+  const [useVoiceAI, setUseVoiceAI] = useState(false);
   const [voiceAIConnected, setVoiceAIConnected] = useState(false);
 
   // Overshoot visual emotion observation
@@ -399,7 +400,8 @@ const Dashboard = () => {
       sessionStartedAtRef.current = Date.now();
       sessionEndedAtRef.current = null;
 
-      // Set recording state early so VideoCapture can request camera.
+      // Enable both systems together
+      setUseVoiceAI(true);
       setIsRecording(true);
 
       const backendUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -515,6 +517,8 @@ const Dashboard = () => {
       console.error(error);
       toast({ variant: 'destructive', title: 'Recording Error', description: 'Failed to start recording' });
       setIsRecording(false);
+      setUseVoiceAI(false);
+      setVoiceAIConnected(false);
       setConnectionStatus('disconnected');
     }
   };
@@ -600,7 +604,10 @@ const Dashboard = () => {
     setRecordedAudioBlob(audioBlob);
     setRecordedVideoBlob(videoBlob);
 
+    // Disable both systems
     setIsRecording(false);
+    setUseVoiceAI(false);
+    setVoiceAIConnected(false);
     setConnectionStatus('disconnected');
 
     // Prompt to save
@@ -886,8 +893,8 @@ const Dashboard = () => {
                   </>
                 )}
 
-                {/* Voice AI Panel - Active when recording */}
-                {isRecording && (
+                {/* Voice AI Panel - Active when useVoiceAI is enabled */}
+                {useVoiceAI && (
                   <Suspense fallback={
                     <Card className="p-4">
                       <div className="flex items-center justify-center py-8 gap-2">
@@ -897,7 +904,7 @@ const Dashboard = () => {
                     </Card>
                   }>
                     <LiveKitVoicePanel
-                      isEnabled={isRecording}
+                      isEnabled={useVoiceAI}
                       onTranscript={handleVoiceAITranscript}
                       onCrisisAlert={handleVoiceAICrisisAlert}
                       onConnectionChange={setVoiceAIConnected}
