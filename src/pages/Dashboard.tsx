@@ -137,10 +137,13 @@ const Dashboard = () => {
       setCurrentEmotion(obs.emotion);
       setCurrentOvershotData(obs);
 
-      // Show toast for distress signals
-      if (obs.distress_signal) {
+      // Only show toast for REAL distress signals (filter out "null", "none", empty)
+      if (obs.distress_signal &&
+          obs.distress_signal !== 'null' &&
+          obs.distress_signal.toLowerCase() !== 'none' &&
+          obs.distress_signal.trim().length > 0) {
         toast({
-          title: 'Distress Signal Detected',
+          title: 'Distress Signal',
           description: obs.distress_signal,
           variant: 'destructive',
         });

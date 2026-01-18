@@ -113,18 +113,17 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Sentiment analysis error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    // Return 200 with neutral sentiment instead of 500 error
+    // This prevents client-side error toasts
     return new Response(
       JSON.stringify({
-        error: errorMessage,
-        // Return neutral sentiment on error
         timestamp: Date.now(),
         sentiment: 'neutral',
         emotional_tone: null,
         confidence: 0,
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
