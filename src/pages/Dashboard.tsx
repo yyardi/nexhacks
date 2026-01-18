@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AudioRecorder } from '@/utils/audioRecorder';
@@ -100,6 +101,8 @@ const Dashboard = () => {
   const { saveSession } = useSessionPersistence();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSavingSession, setIsSavingSession] = useState(false);
+  const [saveProgress, setSaveProgress] = useState(0);
+  const [saveStatus, setSaveStatus] = useState('');
   const [patientName, setPatientName] = useState('');
   const [clinicianName, setClinicianName] = useState('');
   const [chiefComplaint, setChiefComplaint] = useState('');
@@ -480,11 +483,19 @@ const Dashboard = () => {
             audioChunksRef.current.push(e.data);
           }
         };
+        audioRecorder.onerror = (e) => {
+          console.error('[Recording] Audio recorder error:', e);
+        };
         mediaRecorderRef.current = audioRecorder;
         audioRecorder.start(1000);
-        console.log('[Recording] Audio archival started');
+        console.log('[Recording] Audio archival started successfully');
       } catch (err) {
-        console.warn('Audio archival recording not supported:', err);
+        console.error('[Recording] Audio archival recording failed:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Audio Recording Warning',
+          description: 'Could not start audio recording. Session will be saved without audio.'
+        });
       }
 
       await audioRecorderRef.current.start();
@@ -685,6 +696,8 @@ const Dashboard = () => {
   const handleSaveSession = useCallback(async () => {
     try {
       setIsSavingSession(true);
+      setSaveProgress(0);
+      setSaveStatus('Starting save...');
 
       const startedAt = sessionStartedAtRef.current ?? timeline.timelineData.sessionStartTime;
       const endedAt = sessionEndedAtRef.current ?? Date.now();
@@ -704,6 +717,10 @@ const Dashboard = () => {
         endedAt,
         audioBlob: recordedAudioBlob,
         videoBlob: recordedVideoBlob,
+        onProgress: (progress, status) => {
+          setSaveProgress(progress);
+          setSaveStatus(status);
+        },
       });
 
       toast({ title: 'Saved', description: 'Session stored successfully' });
@@ -713,8 +730,10 @@ const Dashboard = () => {
       toast({ variant: 'destructive', title: 'Save failed', description: e?.message || 'Could not save session' });
     } finally {
       setIsSavingSession(false);
+      setSaveProgress(0);
+      setSaveStatus('');
     }
-  }, [assessmentTools, clinicianName, differential, navigate, patientName, chiefComplaint, recordedAudioBlob, recordedVideoBlob, safetyAssessment, saveSession, timeline.timelineData.biometrics, timeline.timelineData.questions, toast, treatmentPlan]);
+  }, [assessmentTools, clinicianName, differential, navigate, patientName, chiefComplaint, recordedAudioBlob, recordedVideoBlob, safetyAssessment, saveSession, timeline.timelineData.biometrics, timeline.timelineData.questions, timeline.timelineData.sessionStartTime, toast, treatmentPlan]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background">
@@ -753,23 +772,45 @@ const Dashboard = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Patient name *</Label>
-              <Input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="e.g., Jane Doe" />
+              <Input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="e.g., Jane Doe" disabled={isSavingSession} />
             </div>
             <div className="space-y-2">
               <Label>Clinician name (optional)</Label>
-              <Input value={clinicianName} onChange={(e) => setClinicianName(e.target.value)} placeholder="e.g., Dr. Smith" />
+              <Input value={clinicianName} onChange={(e) => setClinicianName(e.target.value)} placeholder="e.g., Dr. Smith" disabled={isSavingSession} />
             </div>
             <div className="space-y-2">
               <Label>Chief complaint (optional)</Label>
-              <Input value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder="e.g., Anxiety" />
+              <Input value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder="e.g., Anxiety" disabled={isSavingSession} />
             </div>
 
-            <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
-              <span>Audio {recordedAudioBlob ? '✓' : '—'}</span>
-              <span>Video {recordedVideoBlob ? '✓' : '—'}</span>
-              <span>Biometrics: {timeline.timelineData.biometrics.length} pts</span>
-              <span>Transcript: {timeline.timelineData.transcripts.length} turns</span>
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Session Contents:</div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className={recordedAudioBlob ? 'text-success' : 'text-destructive'}>
+                  {recordedAudioBlob ? '✓' : '✗'} Audio: {recordedAudioBlob ? `${(recordedAudioBlob.size / 1024 / 1024).toFixed(2)} MB` : 'Not recorded'}
+                </div>
+                <div className={recordedVideoBlob ? 'text-success' : 'text-destructive'}>
+                  {recordedVideoBlob ? '✓' : '✗'} Video: {recordedVideoBlob ? `${(recordedVideoBlob.size / 1024 / 1024).toFixed(2)} MB` : 'Not recorded'}
+                </div>
+                <div className={accumulatedTextRef.current.length > 0 ? 'text-success' : 'text-destructive'}>
+                  {accumulatedTextRef.current.length > 0 ? '✓' : '✗'} Transcript: {accumulatedTextRef.current.length > 0 ? `${accumulatedTextRef.current.length} chars` : 'Empty'}
+                </div>
+                <div className="text-muted-foreground">
+                  ✓ Biometrics: {timeline.timelineData.biometrics.length} snapshots
+                </div>
+              </div>
             </div>
+
+            {/* Progress Bar */}
+            {isSavingSession && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{saveStatus}</span>
+                  <span className="font-medium">{saveProgress}%</span>
+                </div>
+                <Progress value={saveProgress} className="h-2" />
+              </div>
+            )}
           </div>
 
           <DialogFooter>

@@ -375,7 +375,7 @@ function VoiceAssistantUI({
                   )}
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-lg px-3 py-2 text-sm",
+                      "max-w-[70%] rounded-lg px-3 py-2 text-sm break-words",
                       message.speaker === 'user'
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted",
