@@ -54,17 +54,14 @@ echo 'VITE_LIVEKIT_URL=wss://YOUR-PROJECT.livekit.cloud' >> .env
 
 **Run this:**
 ```bash
+export LIVEKIT_API_KEY=your-livekit-key
+export LIVEKIT_API_SECRET=your-livekit-secret
 python agent.py dev
 ```
 
 **Keep it running** in a separate terminal while testing.
 
-**Note:** You need OpenAI API key and Cartesia API key as environment variables:
-```bash
-export OPENAI_API_KEY=your-key-here
-export CARTESIA_API_KEY=your-key-here
-python agent.py dev
-```
+**Note:** Use the same LIVEKIT_API_KEY and LIVEKIT_API_SECRET you set in Supabase secrets.
 
 ---
 
@@ -93,7 +90,7 @@ After the 3 steps above:
 
 - [ ] Get LiveKit Cloud account at https://cloud.livekit.io
 - [ ] Add `VITE_LIVEKIT_URL=wss://xxx.livekit.cloud` to `.env`
-- [ ] Set `OPENAI_API_KEY` and `CARTESIA_API_KEY` environment variables
+- [ ] Set `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` environment variables (same as Supabase secrets)
 - [ ] Run `python agent.py dev` in one terminal
 - [ ] Run `npm run dev` in another terminal
 - [ ] Test Voice AI mode in Dashboard
