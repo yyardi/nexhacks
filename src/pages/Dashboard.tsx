@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Shield, AlertTriangle, FileText, Mic, MicOff, Clock, Pill, LogOut, FolderOpen, Search, Heart, MoreHorizontal, Eye, Activity } from 'lucide-react';
+import { Brain, Shield, AlertTriangle, FileText, Mic, MicOff, Clock, Pill, LogOut, FolderOpen, Search, Heart, MoreHorizontal, Eye, Activity, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1011,6 +1011,7 @@ const Dashboard = () => {
                   </div>
                 )}
               </div>
+              )}
             </div>
           </div>
         </Card>
@@ -1093,7 +1094,6 @@ const Dashboard = () => {
               isRecording={isRecording}
             />
           </div>
-          )}
 
           {/* Right: Analysis Tabs - Hidden in patient mode */}
           {mode === 'doctor' && (
