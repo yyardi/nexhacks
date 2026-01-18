@@ -56,7 +56,7 @@ echo 'VITE_LIVEKIT_URL=wss://YOUR-PROJECT.livekit.cloud' >> .env
 ```bash
 export LIVEKIT_API_KEY=your-livekit-key
 export LIVEKIT_API_SECRET=your-livekit-secret
-python agent.py dev
+python3 agent.py dev
 ```
 
 **Keep it running** in a separate terminal while testing.
@@ -91,7 +91,7 @@ After the 3 steps above:
 - [ ] Get LiveKit Cloud account at https://cloud.livekit.io
 - [ ] Add `VITE_LIVEKIT_URL=wss://xxx.livekit.cloud` to `.env`
 - [ ] Set `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` environment variables (same as Supabase secrets)
-- [ ] Run `python agent.py dev` in one terminal
+- [ ] Run `python3 agent.py dev` in one terminal
 - [ ] Run `npm run dev` in another terminal
 - [ ] Test Voice AI mode in Dashboard
 - [ ] ✅ MVP DONE
