@@ -732,11 +732,28 @@ const Dashboard = () => {
                           toast({ variant: 'destructive', title: 'Stop recording first', description: 'End the current session before switching modes' });
                           return;
                         }
-                        setUseVoiceAI(checked);
+                        
+                        console.log(`[Dashboard] Voice AI toggle: ${checked ? 'ON' : 'OFF'}`);
+                        
                         if (checked) {
+                          // Start fresh session when enabling Voice AI
+                          console.log('[Dashboard] Starting new Voice AI session');
                           timeline.startNewSession();
                           sessionStartedAtRef.current = Date.now();
+                          sessionEndedAtRef.current = null;
+                          // Clear any previous state
+                          accumulatedTextRef.current = '';
+                          setDifferential([]);
+                          setSafetyAssessment(null);
+                          setAssessmentTools([]);
+                          setTreatmentPlan([]);
+                        } else {
+                          // Clean up when disabling Voice AI
+                          console.log('[Dashboard] Disabling Voice AI');
+                          setVoiceAIConnected(false);
                         }
+                        
+                        setUseVoiceAI(checked);
                       }}
                     />
                   </div>

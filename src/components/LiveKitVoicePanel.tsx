@@ -61,8 +61,30 @@ function VoiceAssistantUI({
   const transcriptProcessedRef = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
+  const hasInitializedRef = useRef(false);
 
   const { state, audioTrack, agentTranscriptions } = voiceAssistant;
+
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log('[VoiceAssistant] State changed to:', state);
+    
+    // Initialize only once when first entering listening state
+    if (state === 'listening' && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      console.log('[VoiceAssistant] Voice AI is now listening and ready');
+    }
+  }, [state]);
+
+  // Reset initialization flag when room changes
+  useEffect(() => {
+    if (room) {
+      hasInitializedRef.current = false;
+      transcriptProcessedRef.current.clear();
+      setTranscriptMessages([]);
+      console.log('[VoiceAssistant] Room initialized, ready for new session');
+    }
+  }, [room]);
 
   // Get user transcriptions from local microphone track
   const micTrackRef = microphoneTrack?.track ? {
@@ -327,11 +349,19 @@ export function LiveKitVoicePanel({
   const [error, setError] = useState<string | null>(null);
   const [crisisAlerts, setCrisisAlerts] = useState<CrisisAlert[]>([]);
   const [connectionKey, setConnectionKey] = useState(0);
+  const isGeneratingTokenRef = useRef(false);
 
   const serverUrl = import.meta.env.VITE_LIVEKIT_URL || '';
 
   // Generate a new token
   const createToken = useCallback(async () => {
+    // Prevent duplicate token generation
+    if (isGeneratingTokenRef.current) {
+      console.log('[LiveKit] Token generation already in progress, skipping');
+      return;
+    }
+
+    isGeneratingTokenRef.current = true;
     setIsConnecting(true);
     setError(null);
     setToken(null);
@@ -353,38 +383,63 @@ export function LiveKitVoicePanel({
         `user-${Date.now()}`,
         'Patient'
       );
-      console.log('Connecting to room:', uniqueRoomName);
+      console.log('[LiveKit] Connected to room:', uniqueRoomName);
 
       setToken(generatedToken);
     } catch (e) {
-      console.error('Token generation failed:', e);
+      console.error('[LiveKit] Token generation failed:', e);
       setError('Failed to connect to voice assistant. Please check configuration.');
     } finally {
       setIsConnecting(false);
+      isGeneratingTokenRef.current = false;
     }
   }, []);
 
-  // Generate token when enabled or connectionKey changes
+  // Complete cleanup when disabled
+  const cleanup = useCallback(() => {
+    console.log('[LiveKit] Cleaning up Voice AI session');
+    setToken(null);
+    setError(null);
+    setIsConnecting(false);
+    setCrisisAlerts([]);
+    isGeneratingTokenRef.current = false;
+    onConnectionChange?.(false);
+  }, [onConnectionChange]);
+
+  // Generate token when enabled or connectionKey changes, cleanup when disabled
   useEffect(() => {
     if (!isEnabled) {
-      setToken(null);
+      cleanup();
       return;
     }
 
+    // Fresh start when enabled
+    console.log('[LiveKit] Voice AI enabled, initializing fresh session');
     createToken();
-  }, [isEnabled, connectionKey, createToken]);
+
+    // Cleanup on unmount or when disabled
+    return () => {
+      if (!isEnabled) {
+        cleanup();
+      }
+    };
+  }, [isEnabled, connectionKey, createToken, cleanup]);
 
   // Handle disconnection - regenerate token for reconnection
   const handleDisconnected = useCallback(() => {
+    console.log('[LiveKit] Disconnected from room');
     onConnectionChange?.(false);
     // Set error to show reconnect option
     setError('Connection lost. Click retry to reconnect.');
     setToken(null);
+    isGeneratingTokenRef.current = false;
   }, [onConnectionChange]);
 
   // Handle retry - regenerate token with new room
   const handleRetry = useCallback(() => {
+    console.log('[LiveKit] Retrying connection');
     setError(null);
+    isGeneratingTokenRef.current = false;
     setConnectionKey(prev => prev + 1);
   }, []);
 
@@ -470,18 +525,22 @@ export function LiveKitVoicePanel({
           </div>
         ) : token && serverUrl ? (
           <LiveKitRoom
-            key={connectionKey}
+            key={`${connectionKey}-${token.slice(0, 10)}`}
             token={token}
             serverUrl={serverUrl}
             connect={true}
             audio={true}
             video={false}
-            onConnected={() => onConnectionChange?.(true)}
+            onConnected={() => {
+              console.log('[LiveKit] Successfully connected to room');
+              onConnectionChange?.(true);
+            }}
             onDisconnected={handleDisconnected}
             onError={(err) => {
-              console.error('LiveKit room error:', err);
+              console.error('[LiveKit] Room error:', err);
               setError('Connection error. Click retry to reconnect.');
               setToken(null);
+              isGeneratingTokenRef.current = false;
             }}
           >
             <VoiceAssistantUI
