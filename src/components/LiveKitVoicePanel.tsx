@@ -7,12 +7,15 @@ import {
   VoiceAssistantControlBar,
   useLocalParticipant,
   useRoomContext,
+  useTrackTranscription,
 } from '@livekit/components-react';
+import { Track } from 'livekit-client';
 import '@livekit/components-styles';
-import { Volume2, AlertTriangle, Brain, Shield, Activity, Waves } from 'lucide-react';
+import { Volume2, AlertTriangle, Brain, Shield, Activity, Waves, MessageCircle, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { generateLiveKitToken } from '@/lib/livekit-token';
 
@@ -22,6 +25,14 @@ interface CrisisAlert {
   reason: string;
   recommended_action: string;
   timestamp: number;
+}
+
+interface TranscriptMessage {
+  id: string;
+  text: string;
+  speaker: 'user' | 'agent';
+  timestamp: number;
+  isFinal: boolean;
 }
 
 interface LiveKitVoicePanelProps {
@@ -45,11 +56,103 @@ function VoiceAssistantUI({
 }) {
   const voiceAssistant = useVoiceAssistant();
   const room = useRoomContext();
-  const { localParticipant } = useLocalParticipant();
+  const { localParticipant, microphoneTrack } = useLocalParticipant();
   const lastEmotionRef = useRef<string>('');
   const transcriptProcessedRef = useRef<Set<string>>(new Set());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
 
   const { state, audioTrack, agentTranscriptions } = voiceAssistant;
+
+  // Get user transcriptions from local microphone track
+  const micTrackRef = microphoneTrack?.track ? {
+    participant: localParticipant,
+    publication: microphoneTrack,
+    source: Track.Source.Microphone,
+  } : undefined;
+
+  const { segments: userTranscriptions } = useTrackTranscription(micTrackRef);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [transcriptMessages]);
+
+  // Process user transcriptions and add to messages
+  useEffect(() => {
+    if (!userTranscriptions) return;
+
+    userTranscriptions.forEach((segment) => {
+      const key = `user-${segment.id}`;
+
+      // Update or add transcript message
+      setTranscriptMessages(prev => {
+        const existingIndex = prev.findIndex(m => m.id === key);
+        const newMessage: TranscriptMessage = {
+          id: key,
+          text: segment.text,
+          speaker: 'user',
+          timestamp: Date.now(),
+          isFinal: segment.final,
+        };
+
+        if (existingIndex >= 0) {
+          // Update existing message
+          const updated = [...prev];
+          updated[existingIndex] = newMessage;
+          return updated;
+        } else {
+          // Add new message
+          return [...prev, newMessage];
+        }
+      });
+
+      // Call callback for final transcripts
+      if (segment.final && !transcriptProcessedRef.current.has(key) && onTranscript) {
+        transcriptProcessedRef.current.add(key);
+        onTranscript(segment.text, 'user');
+      }
+    });
+  }, [userTranscriptions, onTranscript]);
+
+  // Process agent transcriptions and add to messages
+  useEffect(() => {
+    if (!agentTranscriptions) return;
+
+    agentTranscriptions.forEach((segment) => {
+      const key = `agent-${segment.id}`;
+
+      // Update or add transcript message
+      setTranscriptMessages(prev => {
+        const existingIndex = prev.findIndex(m => m.id === key);
+        const newMessage: TranscriptMessage = {
+          id: key,
+          text: segment.text,
+          speaker: 'agent',
+          timestamp: Date.now(),
+          isFinal: segment.final,
+        };
+
+        if (existingIndex >= 0) {
+          // Update existing message
+          const updated = [...prev];
+          updated[existingIndex] = newMessage;
+          return updated;
+        } else {
+          // Add new message
+          return [...prev, newMessage];
+        }
+      });
+
+      // Call callback for final transcripts
+      if (segment.final && !transcriptProcessedRef.current.has(key) && onTranscript) {
+        transcriptProcessedRef.current.add(key);
+        onTranscript(segment.text, 'agent');
+      }
+    });
+  }, [agentTranscriptions, onTranscript]);
 
   // Send emotion signals to agent when emotions change
   useEffect(() => {
@@ -104,18 +207,6 @@ function VoiceAssistantUI({
     };
   }, [room, onCrisisAlert]);
 
-  // Process transcriptions
-  useEffect(() => {
-    if (!agentTranscriptions || !onTranscript) return;
-    agentTranscriptions.forEach((segment) => {
-      const key = `agent-${segment.id}`;
-      if (!transcriptProcessedRef.current.has(key) && segment.final) {
-        transcriptProcessedRef.current.add(key);
-        onTranscript(segment.text, 'agent');
-      }
-    });
-  }, [agentTranscriptions, onTranscript]);
-
   return (
     <div className="space-y-4">
       {/* Status */}
@@ -144,9 +235,66 @@ function VoiceAssistantUI({
         </Badge>
       </div>
 
+      {/* Live Transcription Display */}
+      <div className="border rounded-lg bg-muted/30">
+        <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/50">
+          <MessageCircle className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium">Live Transcription</span>
+          {transcriptMessages.length > 0 && (
+            <Badge variant="secondary" className="text-xs ml-auto">
+              {transcriptMessages.length} messages
+            </Badge>
+          )}
+        </div>
+        <ScrollArea className="h-48">
+          <div ref={scrollRef} className="p-3 space-y-3">
+            {transcriptMessages.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground py-8">
+                Start speaking to see live transcription...
+              </div>
+            ) : (
+              transcriptMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={cn(
+                    "flex gap-2 items-start",
+                    message.speaker === 'user' ? "justify-end" : "justify-start"
+                  )}
+                >
+                  {message.speaker === 'agent' && (
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Bot className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      "max-w-[80%] rounded-lg px-3 py-2 text-sm",
+                      message.speaker === 'user'
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted",
+                      !message.isFinal && "opacity-70 italic"
+                    )}
+                  >
+                    <p>{message.text}</p>
+                    {!message.isFinal && (
+                      <span className="text-xs opacity-70 ml-1">...</span>
+                    )}
+                  </div>
+                  {message.speaker === 'user' && (
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                      <User className="w-3.5 h-3.5 text-primary-foreground" />
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
       {/* Visualizer */}
       {audioTrack && (
-        <div className="w-full h-20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-lg overflow-hidden border">
+        <div className="w-full h-16 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-lg overflow-hidden border">
           <BarVisualizer
             state={state}
             trackRef={audioTrack}
@@ -178,51 +326,67 @@ export function LiveKitVoicePanel({
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [crisisAlerts, setCrisisAlerts] = useState<CrisisAlert[]>([]);
+  const [connectionKey, setConnectionKey] = useState(0);
 
   const serverUrl = import.meta.env.VITE_LIVEKIT_URL || '';
-  const roomName = `arden-session-${Date.now()}`;
 
-  // Generate token when enabled
+  // Generate a new token
+  const createToken = useCallback(async () => {
+    setIsConnecting(true);
+    setError(null);
+    setToken(null);
+
+    try {
+      const apiKey = import.meta.env.VITE_LIVEKIT_API_KEY;
+      const apiSecret = import.meta.env.VITE_LIVEKIT_API_SECRET;
+
+      if (!apiKey || !apiSecret) {
+        throw new Error('LiveKit credentials not configured');
+      }
+
+      // Generate token locally with unique room name
+      const uniqueRoomName = `arden-session-${Date.now()}`;
+      const generatedToken = await generateLiveKitToken(
+        apiKey,
+        apiSecret,
+        uniqueRoomName,
+        `user-${Date.now()}`,
+        'Patient'
+      );
+      console.log('Connecting to room:', uniqueRoomName);
+
+      setToken(generatedToken);
+    } catch (e) {
+      console.error('Token generation failed:', e);
+      setError('Failed to connect to voice assistant. Please check configuration.');
+    } finally {
+      setIsConnecting(false);
+    }
+  }, []);
+
+  // Generate token when enabled or connectionKey changes
   useEffect(() => {
     if (!isEnabled) {
       setToken(null);
       return;
     }
 
-    const createToken = async () => {
-      setIsConnecting(true);
-      setError(null);
-
-      try {
-        const apiKey = import.meta.env.VITE_LIVEKIT_API_KEY;
-        const apiSecret = import.meta.env.VITE_LIVEKIT_API_SECRET;
-
-        if (!apiKey || !apiSecret) {
-          throw new Error('LiveKit credentials not configured');
-        }
-
-        // Generate token locally with unique room name
-        const uniqueRoomName = `arden-session-${Date.now()}`;
-        const generatedToken = await generateLiveKitToken(
-          apiKey,
-          apiSecret,
-          uniqueRoomName,
-          `user-${Date.now()}`,
-          'Patient'
-        );
-        console.log('Connecting to room:', uniqueRoomName);
-
-        setToken(generatedToken);
-      } catch (e) {
-        console.error('Token generation failed:', e);
-        setError('Failed to connect to voice assistant. Please check configuration.');
-      } finally {
-        setIsConnecting(false);
-      }
-    };
-
     createToken();
-  }, [isEnabled]);
+  }, [isEnabled, connectionKey, createToken]);
+
+  // Handle disconnection - regenerate token for reconnection
+  const handleDisconnected = useCallback(() => {
+    onConnectionChange?.(false);
+    // Set error to show reconnect option
+    setError('Connection lost. Click retry to reconnect.');
+    setToken(null);
+  }, [onConnectionChange]);
+
+  // Handle retry - regenerate token with new room
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setConnectionKey(prev => prev + 1);
+  }, []);
 
   const handleCrisisAlert = useCallback((alert: CrisisAlert) => {
     setCrisisAlerts(prev => [...prev, alert]);
@@ -295,7 +459,7 @@ export function LiveKitVoicePanel({
         {error ? (
           <div className="text-center py-4">
             <p className="text-sm text-destructive">{error}</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={() => setError(null)}>
+            <Button variant="outline" size="sm" className="mt-2" onClick={handleRetry}>
               Retry
             </Button>
           </div>
@@ -306,13 +470,19 @@ export function LiveKitVoicePanel({
           </div>
         ) : token && serverUrl ? (
           <LiveKitRoom
+            key={connectionKey}
             token={token}
             serverUrl={serverUrl}
             connect={true}
             audio={true}
             video={false}
             onConnected={() => onConnectionChange?.(true)}
-            onDisconnected={() => onConnectionChange?.(false)}
+            onDisconnected={handleDisconnected}
+            onError={(err) => {
+              console.error('LiveKit room error:', err);
+              setError('Connection error. Click retry to reconnect.');
+              setToken(null);
+            }}
           >
             <VoiceAssistantUI
               onTranscript={onTranscript}
@@ -331,6 +501,9 @@ export function LiveKitVoicePanel({
       <div className="flex flex-wrap gap-2">
         <Badge variant="secondary" className="text-xs gap-1">
           <Volume2 className="w-3 h-3" /> Voice AI
+        </Badge>
+        <Badge variant="secondary" className="text-xs gap-1">
+          <MessageCircle className="w-3 h-3" /> Live Transcription
         </Badge>
         <Badge variant="secondary" className="text-xs gap-1">
           <Shield className="w-3 h-3" /> Crisis Detection
