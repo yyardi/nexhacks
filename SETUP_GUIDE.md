@@ -197,7 +197,6 @@ supabase/functions/
 **Why two Overshoot keys?**
 - `VITE_OVERSHOOT_API_KEY` - Frontend, for direct camera access (required by Overshoot SDK)
 - `OVERSHOOT_API_KEY` - Backend secret (available for future server-side processing)
-
 ---
 
 ## 📦 Build & Deploy
