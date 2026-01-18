@@ -34,12 +34,12 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
 
 # Required for Real-Time Emotion Detection
 VITE_OVERSHOOT_API_KEY=your-overshoot-api-key-here
-VITE_GEMINI_API_KEY=your-gemini-api-key-here
 ```
 
-**Get API Keys:**
+**Get API Key:**
 - Overshoot: https://overshoot.ai
-- Gemini: https://aistudio.google.com/app/apikey
+
+**Note:** Gemini API key is stored in Supabase Secrets (already configured), not in `.env`
 
 ### 4. Start the Server
 
@@ -70,7 +70,8 @@ Click "Start Observation" and grant camera access.
 - No "emotional spam"
 
 ### Milestone 3.5: Text Sentiment Analysis
-- Gemini AI analyzes transcript text
+- Gemini AI analyzes transcript text via Supabase Edge Function
+- Secure: API key stored on server, not exposed in browser
 - Returns: sentiment (positive/neutral/negative)
 - Includes emotional tone and confidence score
 - No diagnosis or crisis detection
@@ -126,12 +127,16 @@ src/
 │   └── useOvershotVision.ts        # Main Overshoot integration
 ├── utils/
 │   ├── temporalEmotionMemory.ts    # Memory filtering
-│   └── geminiSentimentAnalysis.ts  # Sentiment analysis
+│   └── geminiSentimentAnalysis.ts  # Calls edge function for sentiment
 ├── types/
 │   ├── overshoot.ts                # Type definitions
 │   └── sentiment.ts                # Type definitions
 └── pages/
     └── RealtimeCompanion.tsx       # Main UI (/realtime page)
+
+supabase/functions/
+└── analyze-sentiment/              # Gemini sentiment edge function
+    └── index.ts
 ```
 
 ---
@@ -179,15 +184,19 @@ src/
 ## 🔑 Environment Variables Explained
 
 **Frontend Variables (VITE_*)** - These are embedded in browser JavaScript:
-- `VITE_OVERSHOOT_API_KEY` - For real-time visual emotion detection
-- `VITE_GEMINI_API_KEY` - For text sentiment analysis
+- `VITE_OVERSHOOT_API_KEY` - For real-time visual emotion detection (camera access required)
 - `VITE_SUPABASE_URL` - Supabase project URL
 - `VITE_SUPABASE_PUBLISHABLE_KEY` - Supabase public key
 
 **Backend Variables** - These are set in Supabase Secrets (for Edge Functions):
-- `GEMINI_API_KEY` - Server-side AI analysis
-- `LIVEKIT_API_KEY` - Real-time voice (future)
-- `LIVEKIT_API_SECRET` - Real-time voice (future)
+- `GEMINI_API_KEY` - Secure server-side sentiment analysis (already configured)
+- `OVERSHOOT_API_KEY` - Backup/server-side vision processing (already configured)
+- `LIVEKIT_API_KEY` - Real-time voice (future, already configured)
+- `LIVEKIT_API_SECRET` - Real-time voice (future, already configured)
+
+**Why two Overshoot keys?**
+- `VITE_OVERSHOOT_API_KEY` - Frontend, for direct camera access (required by Overshoot SDK)
+- `OVERSHOOT_API_KEY` - Backend secret (available for future server-side processing)
 
 ---
 

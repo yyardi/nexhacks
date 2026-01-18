@@ -18,7 +18,6 @@ import { Video, VideoOff, Brain, Activity, MessageSquare, AlertCircle, Smile, Me
 import { useToast } from '@/hooks/use-toast';
 
 const OVERSHOOT_API_KEY = import.meta.env.VITE_OVERSHOOT_API_KEY || '';
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 export default function RealtimeCompanion() {
   const { toast } = useToast();
@@ -75,7 +74,7 @@ export default function RealtimeCompanion() {
 
     setIsAnalyzingSentiment(true);
     try {
-      const result = await analyzeTranscriptSentiment(transcriptInput, GEMINI_API_KEY);
+      const result = await analyzeTranscriptSentiment(transcriptInput);
       setSentimentHistory((prev) => [result, ...prev].slice(0, 10));
       setTranscriptInput('');
 

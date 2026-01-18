@@ -1,87 +1,51 @@
 /**
  * Milestone 3.5: Gemini Transcript Sentiment Analysis
  * Extracts lightweight emotional sentiment from spoken words
+ *
+ * SECURITY: Uses Supabase Edge Function to keep API key secure
  */
 
 import { TextSentimentObservation } from '@/types/sentiment';
-
-const SENTIMENT_ANALYSIS_PROMPT = `
-Analyze the sentiment of the following text from a patient speaking to an AI mental health companion.
-
-Rules:
-- Output coarse sentiment only: positive, neutral, or negative
-- Optionally provide a brief emotional tone (1-2 words like "hopeful", "overwhelmed", "calm")
-- NO intent detection
-- NO crisis keyword detection
-- NO diagnosis inference
-- NO safety escalation triggers
-- Just sentiment, not meaning
-
-Respond ONLY with valid JSON in this exact format:
-{
-  "sentiment": "positive" | "neutral" | "negative",
-  "emotional_tone": string | null,
-  "confidence": number
-}
-
-Text to analyze:
-`;
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Analyzes transcript sentiment using Gemini API
+ * Analyzes transcript sentiment using Supabase Edge Function
  * @param text The transcript text to analyze
- * @param apiKey Gemini API key
  * @returns Sentiment observation
  */
 export async function analyzeTranscriptSentiment(
-  text: string,
-  apiKey: string
+  text: string
 ): Promise<TextSentimentObservation> {
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: SENTIMENT_ANALYSIS_PROMPT + text,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 100,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+    if (!text || typeof text !== 'string') {
+      throw new Error('Invalid text provided');
     }
 
-    const data = await response.json();
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!resultText) {
-      throw new Error('No response from Gemini');
+    if (text.length > 5000) {
+      throw new Error('Text too long (max 5000 characters)');
     }
 
-    // Parse JSON from response
-    const parsed = JSON.parse(resultText.trim());
+    console.log('Calling sentiment analysis edge function...');
 
+    const { data, error } = await supabase.functions.invoke('analyze-sentiment', {
+      body: { text },
+    });
+
+    if (error) {
+      console.error('Edge function error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('No response from sentiment analysis');
+    }
+
+    // Edge function already returns the correct format
     return {
-      timestamp: Date.now(),
-      sentiment: parsed.sentiment || 'neutral',
-      emotional_tone: parsed.emotional_tone || null,
-      confidence: parsed.confidence || 0.5,
+      timestamp: data.timestamp || Date.now(),
+      sentiment: data.sentiment || 'neutral',
+      emotional_tone: data.emotional_tone || null,
+      confidence: data.confidence || 0.5,
     };
   } catch (error) {
     console.error('Failed to analyze sentiment:', error);
@@ -98,15 +62,13 @@ export async function analyzeTranscriptSentiment(
 /**
  * Batch analyzes multiple transcript chunks
  * @param chunks Array of text chunks to analyze
- * @param apiKey Gemini API key
  * @returns Array of sentiment observations
  */
 export async function batchAnalyzeSentiment(
-  chunks: string[],
-  apiKey: string
+  chunks: string[]
 ): Promise<TextSentimentObservation[]> {
   const results = await Promise.all(
-    chunks.map((chunk) => analyzeTranscriptSentiment(chunk, apiKey))
+    chunks.map((chunk) => analyzeTranscriptSentiment(chunk))
   );
   return results;
 }

@@ -18,10 +18,16 @@ Quick overview of changes made for Arden Overshoot integration.
 ```
 src/hooks/useOvershotVision.ts          - Overshoot camera integration
 src/utils/temporalEmotionMemory.ts      - Duplicate emotion filtering
-src/utils/geminiSentimentAnalysis.ts    - Text sentiment analysis
+src/utils/geminiSentimentAnalysis.ts    - Text sentiment (calls edge function)
 src/types/overshoot.ts                  - TypeScript types for visual observations
 src/types/sentiment.ts                  - TypeScript types for sentiment
 src/pages/RealtimeCompanion.tsx         - Main UI page at /realtime
+```
+
+### Supabase Edge Functions (1 file)
+```
+supabase/functions/analyze-sentiment/   - Secure Gemini sentiment analysis
+    └── index.ts
 ```
 
 ### Documentation (2 files)
@@ -81,9 +87,10 @@ package-lock.json          - Dependency lockfile
 
 Add to your `.env` file:
 ```env
-VITE_OVERSHOOT_API_KEY=your-key-here
-VITE_GEMINI_API_KEY=your-key-here
+VITE_OVERSHOOT_API_KEY=your-overshoot-key-here
 ```
+
+**Note:** Gemini API key is stored in Supabase Secrets (not in `.env`), already configured.
 
 ---
 
