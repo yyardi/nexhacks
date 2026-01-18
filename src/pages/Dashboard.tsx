@@ -238,13 +238,36 @@ const Dashboard = () => {
     setIsProcessing(true);
 
     try {
+      console.log('🔍 Triggering psychiatric analysis...', { textLength: textToAnalyze.length });
+
       const { data, error } = await supabase.functions.invoke('analyze-psychiatric', {
-        body: { transcript: textToAnalyze }
+        body: {
+          transcript: textToAnalyze,
+          speechMetrics: {
+            rate: speechRate || 0,
+            longPauses: longPauses || 0
+          }
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Analysis error:', error);
+        toast({
+          variant: "destructive",
+          title: "Analysis Error",
+          description: error.message || 'Failed to analyze transcript. Check Gemini API key in Supabase secrets.',
+        });
+        throw error;
+      }
 
       if (data) {
+        console.log('✅ Analysis completed:', {
+          hasDifferential: !!data.differential_diagnoses,
+          hasSafety: !!data.safety_assessment,
+          hasQuestions: !!data.critical_questions_to_ask,
+          hasTreatment: !!data.treatment_plan
+        });
+
         if (data.differential_diagnoses) setDifferential(data.differential_diagnoses);
         if (data.safety_assessment) setSafetyAssessment(data.safety_assessment);
         if (data.assessment_tools_to_administer) setAssessmentTools(data.assessment_tools_to_administer);
@@ -279,7 +302,7 @@ const Dashboard = () => {
           treatmentPlan: data.treatment_plan
         });
 
-        if (data.safety_assessment?.suicide_risk_level === 'High' || 
+        if (data.safety_assessment?.suicide_risk_level === 'High' ||
             data.safety_assessment?.suicide_risk_level === 'Imminent') {
           toast({
             variant: "destructive",
@@ -287,9 +310,14 @@ const Dashboard = () => {
             description: "Immediate safety assessment recommended",
           });
         }
+
+        toast({
+          title: "Analysis Complete",
+          description: "Psychiatric assessment updated",
+        });
       }
     } catch (error) {
-      console.error('Analysis failed:', error);
+      console.error('❌ Analysis failed:', error);
     } finally {
       isAnalyzingRef.current = false;
       setIsProcessing(false);
