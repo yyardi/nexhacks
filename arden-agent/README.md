@@ -140,3 +140,22 @@ You can also self-host LiveKit instead of using LiveKit Cloud. See the [self-hos
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
+Quick Start
+
+Install dependencies:
+
+
+npm install
+Start the frontend:
+
+
+npm run dev
+Start the AI agent (in a separate terminal):
+
+
+cd arden-agent
+source .venv/bin/activate
+python src/agent.py dev
+The app will be available at http://localhost:5173. Toggle "Voice AI" in the dashboard to start a session with Arden.
