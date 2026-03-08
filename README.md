@@ -3,6 +3,7 @@
 > Real-time multimodal clinical intelligence for psychiatric assessments, analyzing voice, video, and conversation to surface subtle crisis signals and diagnostic insights instantly.
 
 Team: Shrishant Hattarki, Aakash Kolli, Jason Yap, Yash Yardi
+
 [Devpost](https://devpost.com/software/project-v813inysf24z)
 
 ---
